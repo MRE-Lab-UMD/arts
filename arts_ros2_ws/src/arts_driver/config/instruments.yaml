@@ -1,0 +1,42 @@
+# Instrument catalog: what <arm>/tool_info says for each value of <psm>_tool (decision 18).
+#
+# energy_type routes energy: the esu node maps the ESU's monopolar output to the arm whose
+# instrument is monopolar, and the bipolar output to the bipolar one. joint_names /
+# actuator_names list what appears in <arm>/joint_states and <arm>/tool_actuator_states once
+# the instrument drive (arts_dv_tool_driver) is in the arm's controller manager; empty until
+# then. part_number: from the instrument's own label, filled in when it is read, never
+# guessed. kinematics_file: the instrument's joints, coupling and limits, a file in
+# arts_dv_tool_driver/config/instruments/ (docs/instrument_identification.md); bringup hands
+# it to disc_drive, tool_info publishes its path and SHA-256.
+none:
+  family: ""
+  energy_type: none
+large_needle_driver:
+  family: da_vinci_x
+  energy_type: none
+  part_number: "471006"
+  kinematics_file: 471006_large_needle_driver.yaml
+monopolar_curved_scissors:
+  family: da_vinci_x
+  energy_type: monopolar
+  part_number: "470179"
+  kinematics_file: 470179_monopolar_curved_scissors.yaml
+bipolar_fenestrated_forceps:   # label: "fenestrated bipolar forceps"
+  family: da_vinci_x
+  energy_type: bipolar
+  part_number: "471205"
+  kinematics_file: 471205_fenestrated_bipolar_forceps.yaml
+prograsp_forceps:
+  family: da_vinci_x
+  energy_type: none
+  part_number: "470093"
+  kinematics_file: 470093_prograsp_forceps.yaml
+permanent_cautery_hook:
+  family: da_vinci_x
+  energy_type: monopolar
+  part_number: "470183"
+  kinematics_file: 470183_permanent_cautery_hook.yaml
+stereo_laparoscope:
+  family: da_vinci_x
+  energy_type: none
+  part_number: ""

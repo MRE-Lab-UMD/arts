@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>arts_camera_sync</name>
+  <version>0.1.0</version>
+  <description>ESP32 stereo camera trigger generator with ExposureActive capture feedback.
+    Fires every FLIR camera from one hardware edge and timestamps each camera's exposure
+    strobe on a single MCPWM capture counter, so L/R skew is measured in hardware rather than
+    inferred from image timestamps. See AGENTS.md decision 14.</description>
+  <maintainer email="arts@anonymous.invalid">ARTS Maintainers</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- The firmware is built by the ESP-IDF toolchain, not colcon. This package ships the
+       message dependency, the agent launch file and the documentation. -->
+  <depend>arts_interfaces</depend>
+  <exec_depend>micro_ros_agent</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

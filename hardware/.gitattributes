@@ -1,0 +1,4 @@
+# STEP is text but large and machine-written: never diff or merge it line by line.
+*.step -diff -merge linguist-generated
+*.stl binary
+*.pdf binary

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARTS Software Architecture Proposal</title>
+<style>
+  :root {
+    --bg: #16181d;
+    --surface: #1d2026;
+    --surface2: #23262d;
+    --stroke: #34383f;
+    --stroke-soft: #2a2d33;
+    --text: #e6e8eb;
+    --text2: #a8adb5;
+    --text3: #7a808a;
+    --accent: #6cb2ff;
+    --good: #57c17b;
+    --warn: #d9a742;
+    --bad: #e07069;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #fbfbfc; --surface: #ffffff; --surface2: #f3f4f6;
+      --stroke: #d8dbe0; --stroke-soft: #e6e8ec;
+      --text: #1c1e21; --text2: #4b5058; --text3: #7a808a;
+      --accent: #1f6fd6; --good: #237a45; --warn: #9a6d0b; --bad: #b33f38;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 44px 0 10px; padding-top: 20px; border-top: 1px solid var(--stroke-soft); }
+  h3 { font-size: 15px; margin: 22px 0 8px; }
+  p  { color: var(--text2); margin: 8px 0; }
+  .subtitle { color: var(--text2); margin-bottom: 4px; }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--stroke-soft); }
+  th { color: var(--text3); font-weight: 600; font-size: 12.5px; text-transform: none; }
+  td { color: var(--text2); }
+  td:first-child { color: var(--text); }
+  .frame { border: 1px solid var(--stroke); border-radius: 8px; overflow: hidden; }
+  .frame table { margin: 0; }
+  .layer {
+    border: 1px solid var(--stroke); border-radius: 8px; background: var(--surface);
+    padding: 12px 16px; margin: 0;
+  }
+  .layer.accent { border-color: var(--accent); }
+  .layer .t { font-weight: 600; font-size: 13.5px; margin-bottom: 4px; }
+  .layer.accent .t { color: var(--accent); }
+  .layer .i { color: var(--text2); font-size: 13.5px; margin: 2px 0; }
+  .lrow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  @media (max-width: 720px) { .lrow { grid-template-columns: 1fr; } }
+  .arrow { text-align: center; color: var(--text3); font-size: 12.5px; font-style: italic; padding: 6px 0; }
+  .arrow::before { content: "\2193\00a0\00a0"; font-style: normal; }
+  .callout {
+    border: 1px solid var(--stroke); border-left: 3px solid var(--accent);
+    border-radius: 6px; background: var(--surface); padding: 12px 16px; margin: 14px 0;
+    font-size: 14px; color: var(--text2);
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.good { border-left-color: var(--good); }
+  .callout b { color: var(--text); display: block; margin-bottom: 4px; }
+  pre.tree {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+    background: var(--surface2); border: 1px solid var(--stroke-soft); border-radius: 8px;
+    padding: 14px 18px; overflow-x: auto; color: var(--text2);
+  }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+  @media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
+  .card { border: 1px solid var(--stroke); border-radius: 8px; background: var(--surface); }
+  .card .hd {
+    padding: 6px 14px; border-bottom: 1px solid var(--stroke-soft);
+    font-size: 12.5px; font-weight: 600; color: var(--text3);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card .hd .pill {
+    font-size: 11px; font-weight: 500; color: var(--text3);
+    background: var(--surface2); border-radius: 99px; padding: 1px 9px;
+  }
+  .card .bd { padding: 10px 14px; font-size: 13.5px; color: var(--text2); }
+  .card .bd p { margin: 4px 0; font-size: 13.5px; }
+  .verdict-good { color: var(--good); }
+  .verdict-warn { color: var(--warn); }
+  .verdict-bad { color: var(--bad); }
+  footer { margin-top: 48px; color: var(--text3); font-size: 12.5px; border-top: 1px solid var(--stroke-soft); padding-top: 14px; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>ARTS Software Architecture Proposal</h1>
+<p class="subtitle">From a dual-arm open resection system (ROS&nbsp;2 Humble + OROCOS) to ARTS — a replicable, &lt;$150k, fully open 3-arm laparoscopic platform for surgical autonomy research. Grounded in the v1.4 codebase inventory &middot; August 2026.</p>
+
+<h2>Key decisions at a glance</h2>
+<div class="frame"><table>
+<tr><th>#</th><th>Decision</th><th>Recommendation</th><th>Why</th></tr>
+<tr><td>1</td><td>OROCOS RTT</td><td>Retire it. Propose ARTS as a ROS&nbsp;2 / Slicer / NVIDIA stack.</td><td>rtt_ros2_integration has zero formal releases and a tiny community; the determinism it provides is reproducible with ros2_control chainable controllers, which every contributor already knows.</td></tr>
+<tr><td>2</td><td>Workspace &amp; repo layout</td><td>Standard ROS&nbsp;2 overlay chain: /opt/ros/humble (base underlay) &rarr; categorized <em>middle overlays</em> (ur_ros2_ws, flir_ros2_ws, slicer_ros2_ws, atracsys_ros2_ws, isaac_ros2_ws, oem_ros2_ws) &rarr; arts_ros2_ws on top &rarr; application overlays. Two trees: the git repo holds only recipes, .repos manifests, and first-party source; the ~142&nbsp;GB of SDKs, third-party source, and build output lives in a machine-local mirror at ~/arts_local. Users source a single setup.bash.</td><td>Third-party stacks ship as their own workspaces and should stay in their native structure, pinned and rarely rebuilt. arts_ros2_ws stays small and fast to iterate; end users never see the middle-overlay details. Packages follow ROS&nbsp;2 naming convention (arts_description, arts_driver, arts_controllers, …) — carts are deployment profiles, not code boundaries.</td></tr>
+<tr><td>3</td><td>ROS distro</td><td>Stay on ROS&nbsp;2 Humble (Ubuntu 22.04) through 2026&ndash;27, then migrate directly to the 2026 LTS (Lyrical, supported to 2031) around summer 2027 once it has matured. Skip intermediate distros entirely.</td><td>Humble is in its most reliable years right now (2022&ndash;2027 support window) and matches every pinned driver in the current stack. One planned migration to a fresh 5-year LTS beats two migrations through Jazzy.</td></tr>
+<tr><td>4</td><td>Distribution</td><td>Docker-first (compose profile per cart) + a small host-setup script; keep a bare-metal install path generated from the same layers.</td><td>Clock discipline, udev, and NIC tuning cannot live in a container; everything else can and should.</td></tr>
+<tr><td>5</td><td>Time &amp; recording</td><td>One PTP (IEEE&nbsp;1588) clock domain; hardware-triggered stereo FLIR pair; everything into rosbag2 MCAP with device hardware timestamps.</td><td>Sync is decided at timestamp origin, not at save time. Once stamps are PTP-correct, "bridge to ROS then save" vs "save directly" stops mattering.</td></tr>
+<tr><td>6</td><td>Command API</td><td>Follow plain ROS&nbsp;2 naming conventions (geometry_msgs / sensor_msgs types, ros2_control controller naming, REP-144-style topic names). No CRTK / dVRK vocabulary.</td><td>ARTS is deliberately independent of dVRK (no support path for da Vinci Xi/X/SP/5 instruments there, and no reliance on company donations). ROS&nbsp;2 conventions are the common denominator that Slicer and NVIDIA tooling already speak.</td></tr>
+<tr><td>7</td><td>Simulation</td><td>Isaac Lab 3.0 with the Newton (Linux Foundation, Apache-2.0) physics backend, exposing the same ROS&nbsp;2 interface as the real patient cart.</td><td>Sim/real switch happens at the driver layer; teleop and autonomy code cannot tell the difference.</td></tr>
+<tr><td>8</td><td>GPU vs RT kernel</td><td>Keep the RT control path free of any GPU dependency: GPU work (perception, encoding, learning) runs in separate processes or a second PC. PREEMPT_RT becomes an optional optimization, not a prerequisite.</td><td>NVIDIA drivers only gained working PREEMPT_RT compatibility in release 590.44.01 (late 2025) and it is still not officially supported. Decoupling means the system never depends on that fix.</td></tr>
+<tr><td>9</td><td>Dev methodology</td><td>Module-first, in Docker on the current PC. Every hardware module gets its own compose profile containing just its driver + ROS wrapper, a standard benchmark harness, and a committed baseline (rate mean&nbsp;&plusmn;&nbsp;std, CPU, RAM, disk/net I/O, drops). Integration climbs a ladder — module solo &rarr; pairs &rarr; full cart — re-running the identical benchmarks at every rung.</td><td>Isolating modules is how problems get located in big-system integration. Identical benchmarks at each rung make resource contention visible the moment it appears, instead of surfacing as mystery jitter in the full system.</td></tr>
+</table></div>
+
+<h2>Target runtime architecture</h2>
+<p>Everything above the real-time core is soft real-time and replaceable; everything inside it runs in a single process on the patient-cart PC so all three arms share one deterministic update cycle.</p>
+
+<div class="lrow">
+  <div class="layer"><div class="t">Autonomy</div>
+    <div class="i">BehaviorTree.CPP surgical workflows</div>
+    <div class="i">Perception: stereo depth, SAM2, NIR, occupancy</div>
+    <div class="i">Resection / task planners (from nephrectomy_ws)</div></div>
+  <div class="layer"><div class="t">Teleoperation (surgeon console)</div>
+    <div class="i">2&times; Haply Inverse3 via Inverse Service (polled at 500&nbsp;Hz)</div>
+    <div class="i">Clutch, motion scaling, camera-frame mapping</div>
+    <div class="i">Footswitches: energy, camera, record marks</div></div>
+  <div class="layer"><div class="t">Imaging (3D Slicer)</div>
+    <div class="i">SlicerROS2 bridge</div>
+    <div class="i">Pre/intra-op model registration</div>
+    <div class="i">Plans published as ROS&nbsp;2 targets</div></div>
+</div>
+<div class="arrow">plain ROS&nbsp;2 topics: geometry_msgs Cartesian targets, joint commands, jaw commands, measured states</div>
+<div class="layer accent"><div class="t">Real-time control core — two rate-grouped controller_managers, SCHED_FIFO + CPU shielding (PREEMPT_RT optional)</div>
+  <div class="i">500&nbsp;Hz manager: both UR5e tool arms + instrument wrists — teleop follower &rarr; RCM + collision QP (pinocchio + proxsuite) &rarr; Ruckig &rarr; per-arm forward_position</div>
+  <div class="i">125&nbsp;Hz manager: UR5 CB3 camera arm. Rates cannot mix in one manager: ur_robot_driver's read() blocks on the RTDE stream, so a shared loop would be dragged to the slowest arm</div>
+  <div class="i">Cross-manager joint states mirrored via RT-safe buffers for the collision QP (&le;&nbsp;8&nbsp;ms staleness — fine for collision margins, camera arm moves slowly)</div>
+  <div class="i">Safety: arm&ndash;arm distance constraints as QP velocity dampers; e-stop aggregation as last resort</div></div>
+<div class="arrow">ros2_control hardware interfaces / device SDKs</div>
+<div class="lrow">
+  <div class="layer"><div class="t">Motion drivers</div>
+    <div class="i">ur_robot_driver &times;3 (RTDE: 500&nbsp;Hz UR5e, 125&nbsp;Hz UR5 CB3)</div>
+    <div class="i">Tool drive: da Vinci X disc motors in custom adapters</div></div>
+  <div class="layer"><div class="t">Sensing drivers</div>
+    <div class="i">2&times; FLIR via Spinnaker driver — PTP-stamped, HW-triggered pair</div>
+    <div class="i">Laparoscope light source status</div></div>
+  <div class="layer"><div class="t">Aux / energy drivers</div>
+    <div class="i">ESU + footswitch MCU (micro-ROS)</div>
+    <div class="i">Vacuum (EPick), suction, irrigation, smoke evacuator</div></div>
+</div>
+<div class="arrow">hardware</div>
+<div class="layer"><div class="t">Patient cart hardware</div>
+  <div class="i">Vention pedestal &middot; 1&times; UR5 + 2&times; UR5e &middot; da Vinci X laparoscope head + 2 FLIR cameras &middot; 2&times; da Vinci X instruments via custom UR adapters &middot; Karl Storz trainer box</div></div>
+
+<div class="cards">
+  <div class="card"><div class="hd">Simulation twin</div><div class="bd">
+    Isaac Lab 3.0 (Newton backend) spawns the same patient cart from the shared URDF/USD assets and exposes the identical ROS&nbsp;2 topic surface. The teleop and autonomy layers connect to sim or real by launching a different driver profile — no code changes.
+  </div></div>
+  <div class="card"><div class="hd">Data recording plane</div><div class="bd">
+    A recorder taps every layer over ROS&nbsp;2 into MCAP bags. All headers carry device hardware timestamps in one PTP clock domain, so offline alignment for SRT-H / LeRobot datasets is exact rather than approximate.
+  </div></div>
+</div>
+
+<h2>Retiring OROCOS — what replaces each piece</h2>
+<p>Today the OROCOS mid-level controller (the v1.4 controller) runs a 100&nbsp;Hz activity with Reflexxes Type&nbsp;II and KDL, deployed through a <code>.ops</code> script, and requires hand-built RTT typekits for every message plus a serialized single-worker build of <code>orocos_ws</code>. Each RTT feature maps cleanly onto a maintained mainstream replacement:</p>
+<div class="frame"><table>
+<tr><th>OROCOS feature used in v1.4</th><th>Replacement in ARTS</th></tr>
+<tr><td>TaskContext with 100&nbsp;Hz periodic activity</td><td>controller_manager update loop at 250&ndash;500&nbsp;Hz, SCHED_FIFO thread</td></tr>
+<tr><td>Reflexxes Type&nbsp;II online trajectory generation</td><td>Ruckig (community version, actively maintained, jerk-limited OTG)</td></tr>
+<tr><td>KDL FK / IK solvers</td><td>Pinocchio (analytic derivatives, needed anyway for the RCM/collision QP); ur_ikfast kept for analytic IK</td></tr>
+<tr><td>RTT ports + typekits for zero-serialization dataflow</td><td>Chainable-controller interfaces inside one process; intra-process composable nodes elsewhere — no typekit generation ever again</td></tr>
+<tr><td>deployer + .ops deployment scripts</td><td>ROS&nbsp;2 launch + lifecycle nodes</td></tr>
+<tr><td>OCL NetCDF reporting</td><td>rosbag2 MCAP</td></tr>
+<tr><td>Lock-free RT-safe buffers</td><td>realtime_tools RealtimeBuffer / RealtimeBox</td></tr>
+</table></div>
+
+<div class="callout"><b>The nuance worth keeping</b>
+What OROCOS actually bought you was deterministic in-process dataflow between components. Preserve that property architecturally — keep each servo pipeline in-process with chained controllers, in two rate-grouped controller_managers (500&nbsp;Hz for the UR5e pair, 125&nbsp;Hz for the CB3 camera arm; the UR driver's blocking RTDE read forbids mixing rates in one loop) — rather than by keeping RTT. Note that the orocos_kdl kinematics library is a separate, still-maintained project; using or dropping it is independent of dropping the RTT runtime.</div>
+
+<div class="callout warn"><b>Why not keep RTT?</b>
+To be clear, OROCOS RTT and rtt_ros2_integration are fully open source (Apache-2.0) — the objection is purely maintenance and community. rtt_ros2_integration has no formal releases and a contributor pool of a handful of people, and it is the single biggest build complexity in the legacy installer today (serialized single-worker builds, hand-generated typekits for every message). For a release aimed at replication by other labs, every dependency should be apt/rosdep-installable and familiar to contributors.</div>
+
+<div class="callout"><b>Determinism, the NVIDIA driver, and the RT kernel</b>
+Important decoupling: neither OROCOS nor ros2_control makes timing deterministic by itself — both just run SCHED_FIFO priority threads, and the jitter floor comes from the kernel underneath. So the RTT-vs-ros2_control choice is orthogonal to the NVIDIA-on-PREEMPT_RT problem. That problem now has three workable answers, in order of preference: (1)&nbsp;keep the control path GPU-free so the control PC does not need the NVIDIA kernel module at all (GPU perception on a second machine or a non-RT box); (2)&nbsp;run a single PC without PREEMPT_RT — a lowlatency/PREEMPT_DYNAMIC kernel with SCHED_FIFO threads and isolcpus CPU shielding holds sub-millisecond jitter, which servoj's lookahead smoothing absorbs easily at 500&nbsp;Hz; (3)&nbsp;if hard RT is truly wanted on the GPU machine, NVIDIA driver 590.44.01+ contains the locking fix that previously deadlocked PREEMPT_RT (unsupported officially, but functional). ARTS should be designed to work under option&nbsp;1 or 2 and treat PREEMPT_RT as an optional tuning step.</div>
+
+<h2>Workspace layering &amp; repo layout</h2>
+<p>ARTS keeps the proven v1.4 layering: a binary base underlay, categorized middle overlays for third-party stacks that ship in their own native layout, one first-party workspace on top, and per-project application overlays above that. End users never see the middle-overlay details — they source one setup.bash and build on top.</p>
+<pre class="tree">        application overlays — one per project / user
+   imitation_learning_ws · cao_resection_ws · your_project_ws …
+     └─ source ~/arts/arts_ros2_ws/install/setup.bash — nothing else needed
+                              ▲
+  arts_ros2_ws                all first-party arts_* packages (the top overlay)
+                              ▲
+  middle overlays — categorized, version-pinned, rarely rebuilt, built one per
+     ur_ros2_ws · flir_ros2_ws · slicer_ros2_ws · atracsys_ros2_ws ·
+     isaac_ros2_ws · oem_ros2_ws   (orocos_ws: retired)
+     fresh `env -i` shell; each depends only on the base, never on a sibling
+                              ▲
+  /opt/ros/humble             base underlay (binary install)</pre>
+<p>A terminology note that matters for newcomers: in ROS&nbsp;2, <em>underlay</em> conventionally means the base installation you build on top of (<code>/opt/ros/humble</code>). The categorized third-party workspaces in the middle are therefore called <strong>middle overlays</strong> — each is an overlay of the base and an underlay for arts_ros2_ws. Calling them "underlays" invites confusion with the base, so ARTS does not.</p>
+<p>Three rules keep this modular instead of fragile: (1)&nbsp;middle overlays never depend on each other, so they rebuild independently — enforced by building each in a fresh <code>env -i</code> shell that sources only the base, exactly as the legacy installer does; (2)&nbsp;every middle overlay is defined by a version-pinned vcstool .repos manifest stored in the arts repo (under <code>middle_overlay_ros2_wss/</code>), so the whole chain is reproducible with one assemble script; (3)&nbsp;if a middle overlay is ever rebuilt, everything above it rebuilds too (ABI safety) — acceptable because pinned overlays change perhaps once a year. A bonus below in Distribution: each middle overlay maps one-to-one onto a cached Docker image layer.</p>
+<p>There are <strong>two trees</strong>, and conflating them is the most common source of confusion. The git repo holds only text — install recipes, vcstool manifests, and first-party source (tens of MB). Everything heavy — OEM SDK trees, third-party source, and build artifacts, roughly 142&nbsp;GB on the current development PC — lives in a machine-local tree at <code>~/arts_local</code> that is reconstructed from those recipes and never committed. The two trees mirror each other by folder name, so <code>~/arts/oem_drivers/spinnaker/install.sh</code> installs into <code>~/arts_local/oem_drivers/spinnaker-4.2.0.88/</code>.</p>
+<pre class="tree">~/arts/                            ← THE GIT REPO — text only, tens of MB
+├─ oem_drivers/                    manufacturer drivers/SDKs FOR PHYSICAL HARDWARE.
+│  │                               Criterion is "a physical component exists", not license:
+│  │                               Intel's librealsense is open source but belongs here;
+│  │                               Slicer does not. Recipes only, never the SDK.
+│  ├─ spinnaker/                   install.sh + VERSION   (FLIR cameras)
+│  ├─ haply/                       install.sh + VERSION   (Inverse3 service, closed binary)
+│  ├─ fusiontrack/                 install.sh + VERSION   (Atracsys optical tracker)
+│  └─ zivid/ · clarius_cast/ · librealsense/
+├─ open_source_software/           open-source NON-ROS software built from source
+│  ├─ coal/ · pinocchio/ · proxsuite/ · ruckig/      build.sh + pinned VERSION each
+│  └─ slicer/ · plus_toolkit/
+├─ middle_overlay_ros2_wss/           third-party ROS 2 workspaces — manifests + build scripts
+│  ├─ ur_ros2_ws/                   ur_ros2.repos       (UR driver + description, pinned tag)
+│  ├─ flir_ros2_ws/               flir_ros2.repos   (FLIR spinnaker driver, image_common)
+│  ├─ slicer_ros2_ws/              slicer_ros2.repos   (SlicerROS2)
+│  └─ oem_ros2_ws/                 oem_ros2.repos      (loose wrappers with no ws of their own:
+│                                                  zivid-ros, robotiq, realsense-ros,
+│                                                  micro-ROS agent)
+├─ arts_ros2_ws/                        THE top overlay — same shape as a middle overlay,
+│  └─ src/                         builds in place (build/ install/ log/ gitignored)
+│     ├─ arts_interfaces           msgs + srvs + actions (single package, ROS 2 convention)
+│     ├─ arts_description          URDF+SRDF, tools, trainer box, calib; USD export for sim
+│     ├─ arts_calibration          procedures + committed results → feeds arts_description
+│     ├─ arts_driver               bringup launch + configs with per-component toggles
+│     ├─ arts_controllers          chainable ros2_control: servo, RCM, teleop follower
+│     ├─ arts_embedded/            FIRST-PARTY drivers — no third-party ROS driver exists
+│     │  ├─ arts_dv_tool_driver        da Vinci X instrument disc drive (adapter motors)
+│     │  ├─ arts_esu               micro-ROS bridge to ESU / footswitch MCU
+│     │  └─ --- (haply bridge moved to oem_ros2_ws as haply_inverse3_ros2) WebSocket ↔ ROS 2 bridge
+│     ├─ arts_utilities/
+│     │  ├─ arts_kinematics        pinocchio models, ur_ikfast, instrument kinematics
+│     │  ├─ arts_safety            arm–arm collision monitor/predictor, e-stop aggregation
+│     │  ├─ arts_teleop            clutch, scaling, camera-frame mapping, input mapping
+│     │  ├─ arts_record            MCAP recording profiles, footpedal-triggered marks
+│     │  └─ arts_datasets          MCAP → LeRobot / SRT-H export + sync tooling
+│     ├─ arts_sim                  Isaac Lab env, Newton assets, sim driver shim
+│     └─ arts_slicer               SlicerROS2 modules, ultrasound, registration
+├─ example_app_ros2_ws/                 ONE example application overlay on top of arts_ros2_ws
+├─ deploy/                         module scripts, dockerfiles, compose, host_setup.sh, CI
+├─ docs/                           build guide, BOM (&lt;$150k), calibration, ADRs, benchmarks
+└─ reference/                      gitignored symlinks; DELETE before open-sourcing
+
+~/arts_local/                      ← MACHINE-LOCAL — ~142 GB, never in git
+├─ oem_drivers/                    spinnaker-4.2.0.88/ · fusiontrack_v4.7.1/ · zivid-2.14.0/
+├─ open_source_software/           coal/ · pinocchio/ · Slicer-Superbuild-Release/
+└─ middle_overlay_ros2_wss/           ur_ros2_ws/{src,build,install,log} · flir_ros2_ws/{...}
+                                   atracsys_ros2_ws/{...} · isaac_ros2_ws/{...} · oem_ros2_ws/{…}</pre>
+<p>Every non-package directory in the repo carries a <code>COLCON_IGNORE</code> marker so a <code>colcon build</code> from arts_ros2_ws does not descend into workspaces that must be built separately. This is mandatory in <code>reference/</code> in particular: without it colcon follows the v1.4 reference symlink and attempts to build the entire previous-generation system. Note that <code>COLCON_IGNORE</code> is not <code>.gitignore</code> — those directories are fully git-tracked.</p>
+<p>Two naming decisions worth stating explicitly. First, there is no <code>arts_ur</code> or <code>arts_camera_flir</code> package: UR and FLIR already have maintained third-party ROS drivers that arrive through the middle overlays, so what ARTS adds is launch and configuration, which lives in <code>arts_driver</code>. Only hardware with no ROS driver at all — the da Vinci disc drive, the ESU microcontroller, the Haply service bridge — earns a first-party package under <code>arts_embedded/</code> (custom PCB + ESP32/micro-ROS bridges). Second, procedure-specific autonomy (perception, resection planners, task state machines) deliberately does <em>not</em> live in arts_ros2_ws; it belongs in application overlays. The prior system mixing <code>ismr2024</code> and <code>iros_2024_nephrectomy</code> into its main repo is the pattern this avoids, and it is what makes the platform cleanly releasable.</p>
+
+<h3>Dependency pinning policy</h3>
+<p>An unpinned open-source dependency will break the build between machines or overnight. This is not hypothetical for this lab: during prior development, collision-detection code that built successfully one evening failed the next morning on a second PC because coal's API had changed upstream in between. With more than a hundred libraries in the chain, tracking HEAD is not viable — the rule is to pin a release that is verified to build, and stay on it until a concrete problem forces a bump.</p>
+<div class="frame"><table>
+<tr><th>Dependency class</th><th>Pinned in</th><th>Example</th></tr>
+<tr><td>Third-party ROS packages</td><td><code>middle_overlay_ros2_wss/&lt;ws&gt;/&lt;ws&gt;.repos</code></td><td>Universal_Robots_ROS2_Driver @ tag 2.2.15</td></tr>
+<tr><td>Open-source non-ROS libraries</td><td><code>open_source_software/&lt;lib&gt;/VERSION</code></td><td>coal @ full commit hash</td></tr>
+<tr><td>OEM SDKs</td><td><code>oem_drivers/&lt;sdk&gt;/VERSION</code> + archive mirrored to <code>~/arts_local</code></td><td>Spinnaker @ 4.2.0.88</td></tr>
+<tr><td>apt packages</td><td><code>deploy/modules/&lt;module&gt;.sh</code></td><td><code>libeigen3-dev=3.4.0-2ubuntu2</code></td></tr>
+<tr><td>Python packages</td><td><code>requirements.txt</code> beside the consuming package</td><td><code>torch==2.3.1</code></td></tr>
+</table></div>
+<p>Two rules deserve emphasis. <strong>Never a branch:</strong> <code>version: main</code> or <code>devel</code> in a .repos file is banned; use a tag or, preferably, a full commit hash. <strong>Non-ROS C++ libraries are pinned too</strong> — coal, pinocchio, proxsuite, and Ruckig each get their own build recipe, and any transitive <code>FetchContent(… GIT_TAG main)</code> hidden inside a dependency's CMakeLists is overridden explicitly rather than inherited. Bumping a pin is a deliberate, benchmarked act: change the version, rebuild, re-run that module's benchmark, and commit the new baseline beside the old one.</p>
+
+<h3>Cart naming</h3>
+<p>Keep the da Vinci-familiar names — they are instantly understood by every clinical and surgical-robotics reader: <strong>Patient Cart</strong>, <strong>Surgeon Console</strong>, <strong>Vision Cart</strong>. Inventing new names would cost recognition and buy nothing. In code they appear only as deployment profiles: <code>cart-patient</code>, <code>cart-surgeon</code>, <code>cart-vision</code>.</p>
+
+<h2>Data recording &amp; synchronization</h2>
+<h3>One clock domain, decided in hardware</h3>
+<div class="frame"><table>
+<tr><th>Source</th><th>Rate</th><th>Sync mechanism</th><th>Timestamp origin</th></tr>
+<tr><td>2&times; FLIR cameras (stereo laparoscope)</td><td>30&ndash;60&nbsp;fps</td><td>IEEE&nbsp;1588 PTP slaves to the main PC; L/R pair fired by a shared hardware trigger line (or primary&rarr;secondary GPIO)</td><td>Camera hardware timestamp, already in PC clock domain</td></tr>
+<tr><td>UR5e &times;2 (RTDE)</td><td>500&nbsp;Hz</td><td>Driver stamps on receipt; jitter &laquo; 2&nbsp;ms over dedicated NIC</td><td>PC receive time (fine at this rate)</td></tr>
+<tr><td>UR5 CB3 (RTDE)</td><td>125&nbsp;Hz</td><td>Same</td><td>PC receive time</td></tr>
+<tr><td>Haply Inverse3 &times;2</td><td>500&nbsp;Hz poll</td><td>Local service on the same PC &rarr; localhost latency ~0</td><td>Bridge receive time</td></tr>
+<tr><td>ESU / footswitch MCU</td><td>event + 100&nbsp;Hz status</td><td>micro-ROS agent stamps at bridge</td><td>Agent receive time</td></tr>
+<tr><td>Tool drive, EPick, pumps</td><td>&le; 100&nbsp;Hz</td><td>ROS&nbsp;2 native</td><td>Node publish time</td></tr>
+</table></div>
+
+<div class="callout good"><b>Answer to the "bridge to ROS and save, or just save?" question</b>
+Bridge to ROS and record with rosbag2/MCAP. The thing that makes camera data hard to sync is not where you save it — it is where the timestamp comes from. With PTP-disciplined hardware stamps written into header.stamp by the Spinnaker ROS driver (as a composable node with intra-process transport, so frames are not copied), the bag is exactly as well-synchronized as a custom saver, and you keep one uniform recording, replay, and tooling path for every sensor in the system.</div>
+
+<h3>Image bandwidth budget (the dominant cost)</h3>
+<p>Example at 1920&times;1200 @ 60&nbsp;fps per camera — adjust to the exact FLIR model:</p>
+<div class="frame"><table>
+<tr><th>Format</th><th>Per camera</th><th>Both cameras</th><th>Verdict</th></tr>
+<tr><td>Bayer 8-bit raw (debayer offline)</td><td>~138&nbsp;MB/s</td><td>~276&nbsp;MB/s</td><td class="verdict-good">Preferred if a dedicated NVMe is available — lossless, trivially sustained by PCIe-4 SSDs</td></tr>
+<tr><td>Debayered RGB8</td><td>~415&nbsp;MB/s</td><td>~830&nbsp;MB/s</td><td class="verdict-bad">Never record this — 3&times; the data for zero information gain</td></tr>
+<tr><td>Per-frame JPEG (GPU nvJPEG, q&asymp;90)</td><td>8&ndash;15&nbsp;MB/s</td><td>16&ndash;30&nbsp;MB/s</td><td class="verdict-good">The fallback when storage is constrained; still frame-random-access for training</td></tr>
+<tr><td>H.264/H.265 (NVENC)</td><td>4&ndash;8&nbsp;MB/s</td><td>8&ndash;16&nbsp;MB/s</td><td class="verdict-warn">Smallest, but GOP structure hurts random access for imitation-learning dataloaders — archival copies only</td></tr>
+</table></div>
+
+<h3>Recording architecture</h3>
+<div class="callout warn"><b>Humble caveat: MCAP is supported but not the default</b>
+rosbag2's MCAP plugin is officially released for Humble (<code>ros-humble-rosbag2-storage-mcap</code>) but is not part of the desktop/base variants and sqlite3 stays Humble's default — MCAP only became the default in Iron. So: install the plugin explicitly in every recording image and installer, always pass <code>-s mcap</code> to <code>ros2 bag record</code>, and put writer tuning (chunk size, zstd presets) in a shared <code>--storage-config-file</code> YAML. Playback needs no flag — rosbag2 auto-detects the format when reading.</div>
+<p>Run two recorder processes into one session directory: bag A for robot/teleop/tool/energy state (~10&nbsp;MB/s total — three arms at 500&nbsp;Hz is trivial) and bag B for images, writing to a dedicated NVMe. MCAP with zstd for bag A; images stored uncompressed-by-rosbag (already Bayer or JPEG). Footpedal events publish "episode start/stop" marks that the recorder logs, so demonstrations segment themselves. Offline, arts_datasets aligns streams by hardware stamps and exports LeRobot-format episodes for SRT-H training.</p>
+
+<h2>Distribution: Docker-first, host-setup second</h2>
+<p>The install-script pain from the prior system (OEM drivers pinned to specific releases, deps breaking overnight) is exactly what container images solve: users pull a frozen, tested image instead of re-resolving the world. But a container cannot provide kernel or clock discipline, so the design is a thin host layer plus fat images. The workspace layering maps one-to-one onto Docker image layers: each middle overlay (ur_ros2_ws, flir_ros2_ws, slicer_ros2_ws, oem_ros2_ws) is built in its own layer, so changing arts code rebuilds only the top layer while every middle overlay stays cached.</p>
+<div class="cards">
+  <div class="card"><div class="hd">Stays on the host <span class="pill">host_setup.sh</span></div><div class="bd">
+    <p>&middot; CPU isolation (isolcpus for the control core); PREEMPT_RT kernel optional per decision 8</p>
+    <p>&middot; ptp4l / phc2sys PTP grandmaster config</p>
+    <p>&middot; NIC tuning: jumbo frames, receive buffers for GigE Vision</p>
+    <p>&middot; udev rules (Haply, MCU serial, cameras), NVIDIA driver, nvidia-container-toolkit</p>
+  </div></div>
+  <div class="card"><div class="hd">Lives in containers <span class="pill">GHCR images</span></div><div class="bd">
+    <p>&middot; arts-control — net=host, CAP_SYS_NICE, /dev access; runs controller_manager</p>
+    <p>&middot; arts-vision — NVIDIA runtime, Spinnaker, perception models</p>
+    <p>&middot; arts-teleop / arts-recorder / arts-slicer (X11) / arts-sim (Isaac Lab)</p>
+    <p>&middot; devcontainer for contributors, same base image as release</p>
+  </div></div>
+</div>
+<div class="callout warn"><b>Redistribution check before release</b>
+Spinnaker SDK, the Haply Inverse Service, and Zivid debs have OEM licenses that may not permit baking into a public image. The pattern that always works: the Dockerfile takes the vendor archive as a build argument, the repo documents the (free) download step, and your lab additionally keeps the current Software/-style vendored mirror for internal builds. Everything else should come from rosdep/apt with versions pinned in the image.</div>
+<p>Keep a bare-metal install path, but generate it from the same Dockerfile layers (or document the Dockerfile as the canonical install recipe) so the two never drift apart the way the existing install docs and scripts already have.</p>
+
+<h3>Module-first development workflow</h3>
+<p>The host stays minimal — kernel, NVIDIA driver, docker + nvidia-container-toolkit, PTP daemons — and every module is developed and benchmarked in its own compose profile with only its driver and ROS wrapper installed. The benchmark harness is a contract every driver package honors: a bench launch file plus an offline analyzer that reports achieved rate (mean&nbsp;&plusmn;&nbsp;std from MCAP stamps), CPU%, RSS, disk/network I/O, and drop count. Each result is committed under docs/benchmarks/ together with the image digest it ran on, so baselines are reproducible and regressions are diffable.</p>
+<p>Integration then climbs a ladder, re-running the identical benchmarks at every rung: (1)&nbsp;module solo; (2)&nbsp;contention pairs — both cameras together, cameras + recorder, arms + recorder; (3)&nbsp;full patient cart; (4)&nbsp;full system with teleop and display. Each module also gets a resource budget up front (CPU cores from the isolcpus map, NIC allocation for GigE cameras, NVMe lane for the image bag) so a benchmark passes against its budget, not just in isolation.</p>
+<div class="callout good"><b>PREEMPT_RT + NVIDIA + isolcpus — single-PC RT PROVEN (2026-08-05)</b>
+Ubuntu Pro realtime kernel 5.15.0-1081-realtime installed as a second GRUB entry (generic 6.8.0-136 kept). NVIDIA driver 595.84 installed via <code>apt install nvidia-driver-595</code> (userspace) + <code>IGNORE_PREEMPT_RT_PRESENCE=1</code> DKMS bypass (made permanent in <code>/etc/dkms/framework.conf</code>; packages held via <code>apt-mark hold</code>). CPU isolation: <code>isolcpus=4,5,10,11 nohz_full=4,5,10,11 rcu_nocbs=4,5,10,11</code> in GRUB. <b>cyclictest result (5&nbsp;min, CPU saturated + NVIDIA GPU rendering via PRIME offload):</b> worst-case latency on isolated cores = <b>190&nbsp;&micro;s</b> (avg 4&ndash;5&nbsp;&micro;s). That is 9.5% of the 500&nbsp;Hz control period (2&nbsp;ms) &mdash; well within budget. Decision&nbsp;8 is answered: single-PC RT is the path forward; the two-PC and lowlatency-baseline fallbacks are retired. Production workstation with 16+ cores will have even more isolation headroom.</div>
+
+<h2>New components not in the prior system</h2>
+<div class="card" style="margin:10px 0"><div class="hd">Software remote center of motion (RCM) <span class="pill">arts_controllers</span></div><div class="bd">
+Formulate the servo loop as a small QP solved every cycle (pinocchio for kinematics + derivatives, proxsuite as solver): primary task tracks the tool-tip pose command; equality/soft constraint pins the instrument shaft to the calibrated cannula point; inequality constraints enforce joint limits, velocity limits, and arm&ndash;arm minimum distance. This is the standard modern replacement for the mechanically-constrained RCM of the da Vinci, runs comfortably at 250&ndash;500&nbsp;Hz for three 6-DoF arms, and subsumes the current Reflexxes+KDL pipeline. Calibrate each RCM point from the cannula pose in the trainer box; a later refinement can estimate the true fulcrum from interaction forces.
+</div></div>
+<div class="card" style="margin:10px 0"><div class="hd">Real-time arm&ndash;arm collision detection and prediction <span class="pill">arts_safety</span></div><div class="bd">
+Approximate arms, adapters, and instrument shafts as capsules and query distances with coal (already vendored in the prior system) at &ge;200&nbsp;Hz. Predict by rolling joint states forward 100&ndash;300&nbsp;ms at current velocities. Feed the results into the same QP as velocity-damper inequality constraints, so arms smoothly slow and deflect near contact instead of e-stopping — essential when all three elbows crowd over one trainer box while the surgeon's attention is at the tool tips. Hard e-stop remains as the escalation path.
+</div></div>
+<div class="card" style="margin:10px 0"><div class="hd">Haptic teleoperation <span class="pill">arts_teleop</span></div><div class="bd">
+The Inverse3 talks through the Haply Inverse Service — an OEM driver in the same category as Spinnaker or the UR controller firmware: a closed binary with a fully documented, open JSON-over-WebSocket API and open-source clients (Haply's Rust crate, Isaac Lab's Python HaplyDevice class). Every existing open wrapper sits on this service, so ARTS wraps it too: a thin bridge node polls it at 500&nbsp;Hz — matched to the UR5e RTDE rate; the service's multi-kHz capability is unnecessary here since the service answers one state per command sent. The teleop layer implements clutching, 3:1&ndash;5:1 motion scaling, and mapping into the camera frame (so surgeon hand motion matches the laparoscope view), then publishes Cartesian target topics consumed by the RT core. Operator inputs beyond the cursor need an explicit, configurable mapping layer: VerseGrip buttons and a programmable 3-pedal footswitch are assigned to clutch, camera control, instrument switching, energy activation, and recording marks via a single mapping file (not hardcoded). Haply's first-party Isaac Lab integration gives sim teleop nearly for free. One dependency note for the docs: unlike the UR driver (open PC-side code over a documented wire protocol), the Inverse3 serial protocol is not public, so the service binary is a hard dependency.
+</div></div>
+<div class="card" style="margin:10px 0"><div class="hd">da Vinci X instrument drive <span class="pill">arts_dv_tool_driver</span></div><div class="bd">
+The custom UR&ndash;da Vinci adapters need a 4-motor disc drive per instrument. Expose it as an ordinary ros2_control joint interface (wrist pitch/yaw + jaw) chained into the same controller_manager so tool wrist and arm motion are coordinated in one cycle. ARTS defines and publishes its own instrument kinematics/coupling files for da Vinci X instruments — deliberately independent of dVRK, which has no support path for Xi/X/SP/5-generation tools. Existing dVRK definitions serve as a cross-check reference at most.
+</div></div>
+<div class="card" style="margin:10px 0"><div class="hd">Energy / footswitch microcontroller <span class="pill">arts_esu</span></div><div class="bd">
+Run micro-ROS on the MCU that sits between footswitches, the ESU back panel, and the PC. It publishes activation state (who requested energy, when it actually fired) and accepts activation commands from software — both directions land in the same bag, so imitation learning gets exact energy-on/off labels aligned with images and kinematics.
+</div></div>
+<div class="card" style="margin:10px 0"><div class="hd">Stereo display path (GOOVIS HMD) <span class="pill">surgeon console</span></div><div class="bd">
+The GOOVIS is an HDMI display: render the two FLIR streams side-by-side with a dedicated low-latency GStreamer/GPU path directly from the camera driver, not through RViz. Target glass-to-glass latency under ~100&nbsp;ms; this path is independent of the recording path so display never competes with the recorder.
+</div></div>
+
+<h2>Evaluation &amp; benchmarking (ISMR target)</h2>
+<p>Every claim about the system gets a measurable, reproducible test — and where a comparison to dVRK or clinical systems is meaningful, the measurement method is independent of the software stack (external cameras, offline analysis of recorded stamps) so numbers are directly comparable across platforms.</p>
+
+<h3>Benchmark anchors from SOTA open platforms</h3>
+<div class="frame"><table>
+<tr><th>Platform</th><th>What they reported</th><th>ARTS comparison experiment</th></tr>
+<tr><td>dVRK-Si (JHU/Vanderbilt, ISMR 2025)</td><td>PID control for all arms at 1.5&nbsp;kHz with 0.01&nbsp;ms std; digital current-loop step response &lt; 1&nbsp;ms. System/electronics paper — no task or latency metrics.</td><td>Report servo-loop rate + jitter with identical statistics; note the architectural caveat honestly (UR joint servos are internal to the arm — ARTS measures the command-path loop, dVRK-Si measures its own joint PID).</td></tr>
+<tr><td>MOPS (SDU, ISMR 2021)</td><td>Vision-in-loop trajectory-following error 1.2&nbsp;mm / 0.3&deg; (UR5e arm), 2.7&nbsp;mm / 0.7&deg; (UR5 arm); autonomous needle pick-up 28/30; contact detection at 1.3&nbsp;N. No latency, no RCM deviation reported.</td><td>Replicate their vision-in-loop protocol (stereo-tracked marker, taught trajectory) for a directly comparable end-to-end number — MOPS is ARTS's closest ancestor (UR arms + EndoWrist adapters + software RCM).</td></tr>
+<tr><td>Open-source laparoscopic platform (under review, 2026)</td><td>Kinematic RCM deviation median 0.035&ndash;0.079&nbsp;mm (phantom &rarr; in vivo); SPARC/LDLJ smoothness &asymp; JIGSAWS experts; 85% autonomous policy success on bowel retraction.</td><td>Report kinematic RCM deviation with their exact definition, and SPARC/LDLJ computed from ARTS demo recordings against JIGSAWS + their published values.</td></tr>
+</table></div>
+<div class="callout good"><b>ARTS differentiator measurements</b>
+None of the three platforms report motion-to-motion teleoperation latency or externally measured (non-kinematic) accuracy. ARTS's external latency rig and the Atracsys fusionTrack ground-truth sessions are therefore both a contribution and a shield against the obvious reviewer question "your RCM number is kinematic — what is it physically?"</div>
+
+<div class="frame"><table>
+<tr><th>Category</th><th>Metric &amp; method</th><th>Target</th></tr>
+<tr><td>Latency</td><td>Teleop motion-to-motion: an external 240&nbsp;fps camera films the Inverse3 handle and the robot tool in the same frame; latency = frame count between motion onsets. Stack-independent, same method used in dVRK literature.</td><td>&le; 100&nbsp;ms end-to-end</td></tr>
+<tr><td>Latency</td><td>Glass-to-glass video: LED flash in the surgical scene filmed together with the HMD/monitor output by the same high-speed camera; frame-delta gives display-path latency.</td><td>&le; 100&nbsp;ms</td></tr>
+<tr><td>Control</td><td>Servo loop health: cycle-time jitter (mean&nbsp;&plusmn;&nbsp;std) and deadline misses from controller_manager diagnostics over a 1&nbsp;h session.</td><td>0 missed deadlines; jitter &lt; 10% of cycle period</td></tr>
+<tr><td>Control</td><td>RCM deviation, two definitions: (a)&nbsp;kinematic — FK distance of the shaft line to the commanded RCM point, the same definition the open laparoscopic platform uses (their median: 0.035&ndash;0.079&nbsp;mm); (b)&nbsp;physical — measured against the calibrated cannula including calibration error. Both logged through &ge;&nbsp;30&nbsp;min of teleoperation with drift slope.</td><td>(a) &le; 0.1&nbsp;mm median; (b) &le; 1&nbsp;mm RMS, &le; 2&nbsp;mm peak, no drift</td></tr>
+<tr><td>Control</td><td>Master&ndash;slave tracking fidelity: RMS Cartesian error between the scaled master trajectory and the measured tool trajectory at nominal teleop speeds.</td><td>Report; goal &le; 1&nbsp;mm RMS</td></tr>
+<tr><td>Control</td><td>Trajectory smoothness: SPARC and LDLJ computed offline from recorded teleop trajectories (downsampled to 5&nbsp;Hz for fair comparison) against JIGSAWS expert demonstrations and the open platform's published values. Zero extra experiment time — pure post-processing of demo recordings.</td><td>Within the expert JIGSAWS range</td></tr>
+<tr><td>Accuracy</td><td>Vision-in-loop trajectory following (MOPS protocol): stereo-tracked marker on the instrument, mean end-to-end pose error along a taught trajectory — directly comparable to MOPS's numbers.</td><td>&le; 1.2&nbsp;mm / 0.3&deg; (match or beat MOPS's better arm)</td></tr>
+<tr><td>Accuracy</td><td>External ground truth: Atracsys fusionTrack optical tracker (SDK already vendored in the v1.4 reference snapshot) physically measures tool-tip accuracy and RCM deviation — validates the kinematic numbers.</td><td>Report; no SOTA platform publishes this</td></tr>
+<tr><td>Data pipeline</td><td>Recording rate consistency: per-topic achieved frequency (mean&nbsp;&plusmn;&nbsp;std) computed offline from MCAP hardware stamps over 30&nbsp;min full-sensor-load sessions. Nominal rates are deliberately set at ~70% of each module's ceiling — consistent, not maximal.</td><td>&ge; 99% of nominal on every topic; zero dropped robot samples</td></tr>
+<tr><td>Data pipeline</td><td>Synchronization accuracy: L/R stereo hardware-stamp skew (trigger-limited) and camera-to-robot clock alignment from PTP offset logs.</td><td>L/R skew &lt; 1&nbsp;ms; PTP offset &lt; 1&nbsp;&micro;s</td></tr>
+<tr><td>Safety</td><td>Collision avoidance: scripted near-collision teleop scenarios with three arms over the trainer box; log minimum inter-arm distance and contact count.</td><td>0 contacts; minimum distance never below the QP margin</td></tr>
+<tr><td>Human factors</td><td>NASA-TLX weighted workload after standardized FLS peg-transfer sessions, N&nbsp;&ge;&nbsp;5 operators.</td><td>Weighted score &le; 50</td></tr>
+<tr><td>Human factors</td><td>Task performance: FLS peg-transfer completion time and error rate, compared against published dVRK and da Vinci teleop baselines.</td><td>Within the range of published dVRK results</td></tr>
+<tr><td>Surgical function</td><td>Advanced da Vinci X instrument functions on ex vivo porcine tissue: monopolar cut &amp; coag, bipolar coagulation, vessel sealing (with burst-pressure check), stapler firing (with staple-line leak check).</td><td>All four functions demonstrated with predefined per-task success criteria</td></tr>
+<tr><td>System</td><td>Reliability and replicability: one uninterrupted 2&nbsp;h teleop session without software restart; fresh-machine install from README by an outside user.</td><td>No restarts; teleop-in-sim within one day; BOM &lt; $150k</td></tr>
+</table></div>
+<div class="callout warn"><b>Hard milestone: funder demo at T+2 months (~early Oct 2026)</b>
+Teleoperated partial nephrectomy on a hydrogel phantom using a monopolar curved scissors and a bipolar fenestrated forceps. The recording pipeline must be complete beforehand so the demo is captured end-to-end as the example dataset for the ISMR paper. Demo-critical path = phases 0&ndash;4 (those two instruments + monopolar/bipolar energy specifically); simulation (phase 5) and the Docker release (phase 6) may slip past the demo. Stapler and vessel-sealing tests come after the demo.</div>
+<div class="callout"><b>Three-month path to an ISMR submission</b>
+Month 1 — phases 0&ndash;2 plus the external latency rig (camera + LED, built once, reused forever). Month 2 — phases 3&ndash;4, closing with the funder demo; the automated metrics (latency, loop health, RCM drift, recording rates, sync) collect themselves during development sessions. Month 3 — NASA-TLX study, remaining tissue tests, writing, and the anonymized project page. If time runs short, the minimal publishable set is: system description + latency + recording/sync + RCM + the demo task with NASA-TLX; stapler and vessel-seal become qualitative demonstrations or future work.</div>
+<div class="callout"><b>Double-blind review logistics</b>
+The private GitHub repo stays private and under a personal account — never linked from the submission. For review, publish an anonymized project page (fresh GitHub org/Pages with authors redacted, in the style of recent open-platform papers) and share code through an anonymized capsule (e.g. anonymous.4open.science). De-anonymize both after acceptance. Reviewers tracing a repo to the author is a known desk-rejection cause.</div>
+
+<h2>Suggested migration phases</h2>
+<p>Each phase leaves a working system; parity tests against the current v1.4 behavior gate the risky steps.</p>
+<div class="frame"><table>
+<tr><th>Phase</th><th>Deliverable</th><th>Exit criterion</th></tr>
+<tr><td>0</td><td>Workspace scaffolding: middle-overlay .repos manifests + arts_install.sh, arts_ros2_ws skeleton, arts_interfaces, arts_description, ADR docs. Host prep on the current PC (docker, RT kernel dual-boot, RT+NVIDIA test) and the per-module benchmark harness.</td><td>Full overlay chain + arts_ros2_ws build clean on Humble in CI from one script; RT/GPU test result recorded</td></tr>
+<tr><td>1</td><td>Replace the OROCOS mid-level with a ros2_control chainable servo controller (Ruckig + pinocchio) on one UR5e</td><td>Trajectory parity with the v1.4 OROCOS mid-level controller on recorded test commands</td></tr>
+<tr><td>2</td><td>Three arms in two rate-grouped controller_managers (500&nbsp;Hz UR5e pair / 125&nbsp;Hz UR5 camera arm); RCM + collision QP live with cross-manager state mirroring</td><td>Teleop-speed motion with RCM error &lt; 1&nbsp;mm; no QP deadline misses at 500&nbsp;Hz</td></tr>
+<tr><td>3</td><td>FLIR PTP + hardware trigger; arts_recorder; MCAP &rarr; LeRobot export</td><td>L/R frame stamps within trigger jitter; end-to-end dataset loads in an SRT-H-style trainer</td></tr>
+<tr><td>4</td><td>Haply teleop, tool drive, ESU MCU, footswitch-marked episodes</td><td>Full teleoperated peg-transfer recorded and replayed from the bag</td></tr>
+<tr><td>5</td><td>Isaac Lab / Newton twin + SlicerROS2 integration</td><td>Same teleop session runs against sim with no launch-file changes beyond driver profile</td></tr>
+<tr><td>6</td><td>Docker release, docs, BOM, reproducibility pass by an outside user</td><td>A fresh machine reaches teleop-in-sim from README in under a day</td></tr>
+<tr><td>7</td><td>Distro migration: Humble &rarr; 2026 LTS (Lyrical), planned for after summer 2027 once Lyrical has stabilized</td><td>Full test suite green on Lyrical; Humble branch frozen as the reference for the published system</td></tr>
+</table></div>
+
+<footer>ARTS — Autonomous Robotic Translational System &middot; architecture proposal v2 &middot; August 2026. Static export of the working canvas; open in any browser.</footer>
+
+</main>
+</body>
+</html>

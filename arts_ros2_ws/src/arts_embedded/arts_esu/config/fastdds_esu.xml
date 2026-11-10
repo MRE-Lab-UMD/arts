@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Fast DDS profile for the two Fast DDS processes of the ESU module: the micro-ROS agent and the
+  esu node (esu.launch.py sets FASTRTPS_DEFAULT_PROFILES_FILE for them only).
+
+  Why: a CycloneDDS reader that joins after a Fast DDS writer has already published receives
+  that writer's FIRST new sample one writer heartbeat late, and every later sample waits behind
+  it (reliable, in order). Fast DDS's default heartbeat is 3 s. Measured 2026-11-03: the board's
+  first pedal press after a Cyclone listener had joined reached it 3.0 s late (twice on the
+  board; reproduced with a plain rmw_fastrtps publisher, 3.0 s); with this 100 ms heartbeat the
+  same software test gave 0.100 s. Fast DDS readers were never affected.
+-->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <data_writer profile_name="arts_esu_writer" is_default_profile="true">
+    <times>
+      <heartbeatPeriod><sec>0</sec><nanosec>100000000</nanosec></heartbeatPeriod>
+    </times>
+  </data_writer>
+</profiles>

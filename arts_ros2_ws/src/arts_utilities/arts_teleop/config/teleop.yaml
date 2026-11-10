@@ -1,0 +1,94 @@
+# Teleop follower (scripts/teleop_follower.py), position only. One block per follower.
+teleop_follower:
+  ros__parameters:
+    arm: psm_left       # decision 18 role names: the arm driven ...
+    mtm: mtm_left       # ... and the master that drives it
+    # deadman: follow only while the clutch pedal is held (first tests; E9 ran this way).
+    # clutch:  surgical convention, follow while enabled, pedal disconnects. The clinical
+    #          default since 2026-11-05 (peg transfer and tissue runs), enabled by the GOOVIS
+    #          head sensor; enable_source service for the tower view without the headset.
+    mode: clutch
+    enable_source: head_sensor
+    # Orientation teleop (the instrument wrist) in the camera's own view: the clinical setting.
+    # goovis_tilt_deg = the GOOVIS's mount angle as set at the console (about 30 deg on
+    # 2026-11-05); TO BE READ FROM THE CONSOLE MODEL (cart_tf) once that is measured. E9 used
+    # the room frame instead: camera_frame '' and operator_to_base below.
+    orientation: true
+    camera_frame: ecm_stereo_optical_frame
+    goovis_tilt_deg: 30.0
+    # Arm motion per handle motion; collaborator A used 0.25 on the tool arms.
+    scale: 0.25
+    # Row-major 3x3, handle -> operator frame (x right, y up, z toward the operator).
+    # MEASURED 2026-10-30 with the bridge, operator facing the device front: on the left
+    # Inverse3 (05E4) right = -y, up = +z, toward = -x. The right Inverse3 (05DE) is mirrored by
+    # the Hub's handedness: right = -y, up = +z, toward = +x -> [0,-1,0, 0,0,1, 1,0,0].
+    haply_to_operator: [ 0.0, -1.0,  0.0,
+                         0.0,  0.0,  1.0,
+                        -1.0,  0.0,  0.0]
+    # Row-major 3x3 rotation, operator frame -> arm base_link: the ROOM frame (used when
+    # camera_frame is empty). psm_left, 2026-11-05: up = world +z (gravity, the cart datum),
+    # forward = the ECM's viewing direction projected on the floor (world -x; the camera looks
+    # 76 deg down and the operator faces the way it looks), right = world +y; exact to 0.15 deg
+    # of the tf value. The operator found camera-frame orientation hard to reason about (pen up
+    # = image up) and chose the room frame for E9; it stops matching the view if the ECM moves.
+    operator_to_base: [ 0.7071067811865476, -0.7071067811865476, 0.0,
+                        0.0,                 0.0,                1.0,
+                       -0.7071067811865476, -0.7071067811865476, 0.0]
+    # Row-major 3x3, right-multiplied onto the stylus (orientation mode). The VerseGrip's pen
+    # tip is its body +y and the buttons its +z (measured 2026-11-05 from held poses after the
+    # pen's calibration button, which zeroes the pen pointing ahead, buttons up); the tip frame's
+    # shaft is z and its jaw hinge y. So tool z = pen +y, tool y = pen +z: buttons up = hinge up.
+    # Calibrate the pen (horizontal, tip toward the display, buttons up, button) each session:
+    # it drifts (~15 deg seen before a calibration).
+    # 2026-11-09, peg transfer from E3 on (E1, E2 ran the previous map [-1,0,0, 0,0,1, 0,1,0]):
+    # the operator wanted the grip add-on's opening to match the jaws' opening, which was 90 deg
+    # off, so the map gains a roll about the pen axis, C = C_prev Rz(+90) on the left and
+    # C_prev Rz(-90) on the right (mirrored hands; chosen at the console over the opposite
+    # signs, which give the same planes with the hold turned half a roll).
+    stylus_calibration: [0.0, 1.0, 0.0,
+                         0.0, 0.0, 1.0,
+                         1.0, 0.0, 0.0]
+    # Jaw axis kept within this angle of the shaft with the RCM off (teleop_follower.py, "Bend
+    # limit"): a bench safety setting reported with the experiments, not a surgical workspace.
+    max_bend_deg: 60.0
+    # Target stays within +-max_offset [m] of the arm's pose at the first engagement.
+    max_offset: 0.05
+    # Handle speed [m/s] treated as a dropped handle (collaborator A's guard value).
+    drop_speed: 0.8
+    stale_timeout: 0.05
+
+# The right tool arm (bimanual FLS, 2026-11-05): run as -r __node:=teleop_follower_right with
+# this file. Same clinical settings as the left; the right hand's own maps.
+teleop_follower_right:
+  ros__parameters:
+    arm: psm_right
+    mtm: mtm_right
+    mode: clutch
+    enable_source: head_sensor
+    orientation: true
+    camera_frame: ecm_stereo_optical_frame
+    goovis_tilt_deg: 30.0
+    scale: 0.25
+    # The right Inverse3 (05DE). 2026-10-30 it reported right = -y (mirrored by the Hub's
+    # handedness); on 2026-11-05, after the Hub 1.5 update, teleop showed left/right swapped
+    # with that map: it now reports right = +y, a proper frame like the left's.
+    haply_to_operator: [ 0.0,  1.0,  0.0,
+                         0.0,  0.0,  1.0,
+                         1.0,  0.0,  0.0]
+    # stylus_to_haply = H_R^T G (G: operator <- calibrated IMU, the left pen's 2026-11-05
+    # measurement: ahead +y, right +x, up +z) = Rz(+90), collaborator A's right-hand value; the
+    # pen correction is the left's. Gives the left pen's screen orientation for the same
+    # physical pose (checked numerically). The first try assumed the mirrored handle and gave
+    # pitch/yaw swapped at the console.
+    stylus_to_haply: [ 0.0, -1.0, 0.0,
+                       1.0,  0.0, 0.0,
+                       0.0,  0.0, 1.0]
+    # 2026-11-09 from E3: C_prev Rz(-90), see the left block.
+    stylus_calibration: [ 0.0, -1.0, 0.0,
+                          0.0,  0.0, 1.0,
+                         -1.0,  0.0, 0.0]
+    operator_to_base: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]  # room frame unused here
+    max_bend_deg: 60.0
+    max_offset: 0.05
+    drop_speed: 0.8
+    stale_timeout: 0.05

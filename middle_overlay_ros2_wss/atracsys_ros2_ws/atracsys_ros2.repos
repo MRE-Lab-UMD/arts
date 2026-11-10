@@ -1,0 +1,34 @@
+# Atracsys fusionTrack ROS 2 middle overlay (cisst/SAW + CRTK).
+# Pin FULL COMMIT HASHES only. Never branches.
+# Fetched/built into: $ARTS_LOCAL/middle_overlay_ros2_wss/atracsys_ros2_ws/
+#
+# Structure mirrors the official jhu-saw/vcs ros2-atracsys-devel.vcs layout:
+# individual repos rather than the cisst-saw meta-project (which uses submodules
+# that vcstool does not handle well). All commits pinned from devel HEADs as of
+# 2026-08-05; upstream uses devel as their stable working branch.
+# Requires fusionTrack SDK at $ARTS_LOCAL/oem_drivers/fusiontrack_v4.7.1/.
+repositories:
+  cisst-saw/cisstNetlib:
+    type: git
+    url: https://github.com/jhu-cisst/cisstNetlib.git
+    version: 572f3701e76230c938d61d6ca217c7c860f525fc
+  cisst-saw/cisst:
+    type: git
+    url: https://github.com/jhu-cisst/cisst.git
+    version: f10f4d4fa849cfb906bea4c9ed89bebc52cb0406
+  cisst-saw/cisst-ros:
+    type: git
+    url: https://github.com/jhu-cisst/cisst-ros.git
+    version: 90b4093b5a70f3b5e88e7742d3f03495c4163925
+  cisst-saw/sawAtracsysFusionTrack:
+    type: git
+    url: https://github.com/jhu-saw/sawAtracsysFusionTrack.git
+    version: 1ac200f3ff265df1240a77d2f4809d899d72db20
+  crtk/crtk_msgs:
+    type: git
+    url: https://github.com/collaborative-robotics/crtk_msgs.git
+    version: 14b04fcf0d5f3fe32d2b4d0dddd3d247a60e37c3
+  crtk/crtk_python_client:
+    type: git
+    url: https://github.com/collaborative-robotics/crtk_python_client.git
+    version: 33b4c387ce48fe851a64ce84efb566c9fc6a0d16

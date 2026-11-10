@@ -1,0 +1,48 @@
+# === machine-local reference material — never push ===
+/reference/
+
+# === arts_ros2_ws build artifacts (source is tracked; build output is not) ===
+/arts_ros2_ws/build/
+/arts_ros2_ws/install/
+/arts_ros2_ws/log/
+
+# === example_app_ros2_ws build artifacts ===
+/example_app_ros2_ws/build/
+/example_app_ros2_ws/install/
+/example_app_ros2_ws/log/
+
+# === middle_overlay_ros2_wss: fetched source + build artifacts ===
+# The .repos manifests and build.sh scripts ARE tracked; everything else is rebuilt.
+/middle_overlay_ros2_wss/*/src/
+/middle_overlay_ros2_wss/*/build/
+/middle_overlay_ros2_wss/*/install/
+/middle_overlay_ros2_wss/*/log/
+
+# === oem_drivers: recipes are tracked; SDK archives/binaries never ===
+/oem_drivers/*/*.deb
+/oem_drivers/*/*.run
+/oem_drivers/*/*.tar.gz
+/oem_drivers/*/*.zip
+/oem_drivers/*/sdk/
+
+# === open_source_software: recipes tracked; build trees never ===
+/open_source_software/*/build/
+/open_source_software/*/install/
+/open_source_software/*/src/
+
+# === Docker build staging (OEM debs + module files staged temporarily by build scripts) ===
+/deploy/docker/.flir-staging/
+/deploy/docker/.base-staging/
+/deploy/docker/.arts-staging/
+/deploy/docker/.spinnaker-staging/
+/deploy/docker/flir_ros2.repos
+
+# === general ===
+*.pyc
+__pycache__/
+.vscode/
+*.swp
+*.swo
+*~
+libhv.*.log
+cisstLog.txt

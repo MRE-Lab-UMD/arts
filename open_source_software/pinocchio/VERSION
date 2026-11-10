@@ -1,0 +1,8 @@
+# pinocchio — rigid-body dynamics
+# https://github.com/stack-of-tasks/pinocchio
+#
+# Pinned to v3.9.0 (2026-01-05), last release of the 3.x series. v4.0.0 is a
+# major version with breaking API changes; defer that migration until a concrete
+# need arises. Requires coal >= 3.0.0.
+GIT_URL=https://github.com/stack-of-tasks/pinocchio.git
+GIT_REF=v3.9.0

@@ -1,0 +1,29 @@
+# The adapters' Dynamixel buses, keyed by ROLE (decision 18): one FTDI USB-serial adapter per
+# PSM, named by its serial number under /dev/serial/by-id so the arm never depends on which
+# adapter enumerated first (collaborator A's launch hardcoded /dev/ttyUSB0 = right,
+# /dev/ttyUSB1 = left).
+#
+# Each FT232H board is fixed under its adapter, so its serial IS the adapter's identity.
+# VERIFIED at the bench 2026-11-01 by jogging disc 1 on each and watching which adapter turned.
+# 2026-11-04 ~10:50 the adapter designer swapped the two adapters between the arms, each with its
+# FT232H board, so the serials swapped roles: FTBEQBRA is now psm_left, FTBEO5G1 psm_right
+# (PI-reported; not yet re-verified by a jog).
+#
+# engage_tick_period: collaborator A's homing-loop period on this bus [s], the tick the
+# engagement's stall rules assume (engage_sequence.hpp, TIMING). MEASURED 2026-11-02 by
+# test/a_tick_period_probe.py (read-only, 500 ticks of A's 12 single reads, latency timer 1 ms):
+# median 12.00 ms on both buses (left mean 12.13, right 12.04 / 12.23). That was at 1 Mbps with
+# the factory Return Delay Time; since 2026-11-04 the buses run at 2 Mbps, delay 0, so the
+# measured period no longer holds and is set to 0 (A's engagement services refuse). The
+# engagement is now tool_homing (the adapter designer's method, launch/tool_homing.launch.py).
+#
+# baud_rate: every servo's EEPROM Baud Rate, 2 Mbps since 2026-11-04 (with Return Delay Time 0;
+# docs/modules/dv_tool_driver.md, "Bus rate"). disc_drive and tool_homing both open the bus at it.
+psm_left:
+  port: /dev/serial/by-id/usb-FTDI_USB__-__Serial_Converter_FTBEQBRA-if00-port0
+  baud_rate: 2000000
+  engage_tick_period: 0.0
+psm_right:
+  port: /dev/serial/by-id/usb-FTDI_USB__-__Serial_Converter_FTBEO5G1-if00-port0
+  baud_rate: 2000000
+  engage_tick_period: 0.0

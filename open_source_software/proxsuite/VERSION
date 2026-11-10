@@ -1,0 +1,6 @@
+# proxsuite — QP solver (used for RCM + collision avoidance)
+# https://github.com/Simple-Robotics/proxsuite
+#
+# Pinned to v0.7.3 (2026-05-11), latest stable release.
+GIT_URL=https://github.com/Simple-Robotics/proxsuite.git
+GIT_REF=v0.7.3

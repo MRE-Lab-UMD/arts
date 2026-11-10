@@ -1,0 +1,37 @@
+# Collision guard (scripts/collision_guard.py). Arm links are fitted from the vendor collision
+# meshes at start-up; the tools below are fixed capsules: a, b endpoints (m) each in its own tf
+# frame ({arm} is replaced by the arm's name), r radius (m). Extents from the CAD meshes in
+# $ARTS_LOCAL/description_catalog, in <arm>_tool0 (2026-11-07):
+#   adapter      x -66..66, y -38..186, z -6..123 mm (the instrument shaft at z 88.4 mm, from
+#                y 186 mm to the wrist at y 609 mm; the wrist and jaws end at <arm>_tool_tip)
+#   laparoscope  camera head x -83..83, y -132..67, z -6..82 mm ("rocket"); scope tube to
+#                y 567 mm at z 42 mm, x +-16 mm at y 167
+# Instruments and the scope are guarded only near their housing: the first 150 mm of each
+# shaft, 200 mm of the scope. Their distal parts and tips may touch each other (handoffs, and
+# the tip models are estimates; PI, 2026-11-07).
+/collision_guard:
+  ros__parameters:
+    arms: [psm_left, psm_right, ecm]
+    world_frame: world
+    rate: 100.0
+    stop_distance: 0.02       # m, surface to surface: hold every arm
+    warn_distance: 0.05       # m: reported, yellow in RViz
+    clear_margin: 0.02        # m beyond stop: a recovery ends
+    recovery_slack: 0.002     # m closer than at the release: hold again
+    stale_s: 0.2
+    description_wait_s: 5.0
+    capsules_per_link: 1            # one capsule per UR link, fitted to the collision mesh surface
+    # The pedestal where an arm can fold into it (PI, 2026-11-08): a 220 mm sphere midway
+    # between each UR5e mount and the UR5 mount, lowered 80 mm (to the UR5e mounts' height, on
+    # the gussets: at the midpoint the ECM's lowered upper arm grazed it), and one midway
+    # between the two UR5e mounts.
+    pedestal_spheres: '[{"name": "left_holder", "between": ["psm_left_mount", "ecm_mount"], "diameter": 0.22, "offset": [0, 0, -0.08]},
+                        {"name": "right_holder", "between": ["psm_right_mount", "ecm_mount"], "diameter": 0.22, "offset": [0, 0, -0.08]},
+                        {"name": "centre", "between": ["psm_left_mount", "psm_right_mount"], "diameter": 0.22}]'
+    tools:
+      psm_left: '[{"name": "adapter", "a_frame": "{arm}_tool0", "a": [0, -0.005, 0.06], "b_frame": "{arm}_tool0", "b": [0, 0.125, 0.06], "r": 0.075},
+                  {"name": "shaft", "a_frame": "{arm}_tool0", "a": [0, 0.186, 0.0884], "b_frame": "{arm}_tool0", "b": [0, 0.336, 0.0884], "r": 0.006}]'
+      psm_right: '[{"name": "adapter", "a_frame": "{arm}_tool0", "a": [0, -0.005, 0.06], "b_frame": "{arm}_tool0", "b": [0, 0.125, 0.06], "r": 0.075},
+                   {"name": "shaft", "a_frame": "{arm}_tool0", "a": [0, 0.186, 0.0884], "b_frame": "{arm}_tool0", "b": [0, 0.336, 0.0884], "r": 0.006}]'
+      ecm: '[{"name": "camera_head", "a_frame": "{arm}_tool0", "a": [0, -0.085, 0.038], "b_frame": "{arm}_tool0", "b": [0, 0.020, 0.038], "r": 0.09},
+             {"name": "scope", "a_frame": "{arm}_tool0", "a": [0, 0.067, 0.042], "b_frame": "{arm}_tool0", "b": [0, 0.267, 0.042], "r": 0.016}]'

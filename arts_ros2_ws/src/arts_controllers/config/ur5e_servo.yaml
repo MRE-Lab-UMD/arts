@@ -1,0 +1,157 @@
+# Cartesian servo controller configuration for a single UR5e tool arm.
+#
+# ---------------------------------------------------------------------------------------
+# WHERE THESE NUMBERS COME FROM, AND WHY SOME OF THEM ARE OURS
+# ---------------------------------------------------------------------------------------
+# Universal Robots publishes a joint VELOCITY limit (180 deg/s on every UR5e joint) and a
+# joint EFFORT limit (150 Nm on the three proximal joints, 28 Nm on the wrists). It
+# publishes NO acceleration limit and no jerk limit for any joint. This is explicit in
+# ur_description's own config/ur5e/joint_limits.yaml, which carries the comment
+# "acceleration limits are not publicly available" on all six joints and sets
+# has_acceleration_limits: false.
+#
+# Ruckig needs acceleration and jerk bounds. So the values below are ARTS's, not the
+# vendor's, and they are a design parameter of this system rather than a lookup. They are
+# deliberately conservative, and they are PROVISIONAL until validated on hardware by
+# measuring tracking error and following error under a step command.
+#
+# The reasoning, so a reader can disagree with it on the merits:
+#
+#   VELOCITY, 1.0 rad/s (57 deg/s). Just under a third of the published 180 deg/s. The tool
+#   speed that matters is capped separately in tool space below, and this limit exists to
+#   bound what a misbehaving command path can do.
+#
+#   ACCELERATION, 20.0 rad/s^2 (raised from 5.0 on 2026-10-30). 5.0 was a conservative
+#   first guess; in teleop it could not follow an operator's fast back-and-forth (a 4 Hz,
+#   15 mm shake needs ~12 rad/s^2 on the proximal joints), and the arm moved at a fraction of
+#   the commanded amplitude. A rough torque check says far more is available: the shoulder's
+#   rotational inertia with a tool and adapter is a few kg*m^2, so 150 Nm buys tens of
+#   rad/s^2, and the wrists have far less inertia against 28 Nm. Collaborator A ran speedj at
+#   the UR default of 40 rad/s^2 on these arms. Order-of-magnitude only, to be confirmed by
+#   tracking measurements on the real arm.
+#
+#   JERK, 500 rad/s^3 (raised from 50). Reaches the acceleration limit in 0.04 s, i.e. 20
+#   cycles at 500 Hz, still resolved over many control periods. 50 needed 0.1 s and so could
+#   not reverse a joint within a 4 Hz half-period. Mock, 15 mm shakes with feedforward:
+#   tracked in full at 2-5 Hz with 20 / 500 (ratio 1.00-1.07, lag 31-51 ms), versus 0.41 at
+#   4 Hz with 5 / 50. The parameter validation caps jerk at 1000.
+#
+# The tool-space limits are surgical requirements, not hardware protection. The linear cap
+# was 60 mm/s, the v1.4 reference's FAST profile; it clipped the same 4 Hz shake to ~5 mm
+# peak to peak, and an operator shaking an instrument expects the instrument to shake, so for
+# teleop it is 250 mm/s (operator decision, 2026-10-30). Slow tasks (repeatability tests,
+# imitation-learning playback) are slow because their commanded paths are; the cap is a
+# ceiling. The angular cap stays 15 deg/s.
+#
+# BUMPING ANY OF THESE IS A BENCHMARKED ACT, like any other pin in this project: change
+# it, re-run the servo-loop health measurement, and record the result in docs/benchmarks/
+# next to the previous one.
+# ---------------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------------------
+# HOW THIS FILE REACHES THE CONTROLLER
+# ---------------------------------------------------------------------------------------
+# It is NOT the controller_manager's controllers file. The UR driver's own
+# config/ur_controllers.yaml stays that, unmodified: forking it to append one ARTS entry
+# would mean re-forking it on every UR pin bump.
+#
+# Instead the spawner is given this file with --param-file. It reads `type` out of the
+# block below to learn what to load, then hands the whole file to the controller node. So
+# `type` belongs INSIDE servo_controller's own ros__parameters, not in a controller_manager
+# block; putting it in the latter would silently do nothing here.
+#
+# arts_driver/launch/ur_arm.launch.py expands $(var tf_prefix) and $(var command_interface)
+# and re-keys the block under the arm's namespace (/psm_left/servo_controller), because a
+# bare node-name key does not reach a namespaced node. That is what makes one file serve
+# every arm (decision 18). The ECM uses it too until it has its own tuning.
+# ---------------------------------------------------------------------------------------
+
+servo_controller:
+  ros__parameters:
+    type: arts_controllers/CartesianServoController
+
+    # position -> servoj on the UR box, velocity -> speedj (needs tracking.mode rate). Set by
+    # the arm launch's command_interface argument, velocity by default: same shakes reached
+    # the measured joints in 4-9 ms vs 34-40 ms with servoj (servoj_speedj_ab_20261030.md).
+    command_interface: $(var command_interface)
+
+    joints:
+      - $(var tf_prefix)shoulder_pan_joint
+      - $(var tf_prefix)shoulder_lift_joint
+      - $(var tf_prefix)elbow_joint
+      - $(var tf_prefix)wrist_1_joint
+      - $(var tf_prefix)wrist_2_joint
+      - $(var tf_prefix)wrist_3_joint
+
+    base_frame: $(var tf_prefix)base_link
+    flange_frame: $(var tf_prefix)tool0
+    # Published as flange_frame -> tip_frame on /tf_static with the live offset.
+    tip_frame: $(var tf_prefix)tool_tip
+
+    # Identity: the controller servos the flange. ur_arm.launch.py tip:=<key> overrides this
+    # from arts_driver/config/tool_tips.yaml; ~/set_tool_tip_offset changes it at runtime.
+    # [x, y, z, qx, qy, qz, qw], translation in METRES.
+    tool_tip_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    max_tool_tip_offset: 0.8   # m; the da Vinci X adapter's wrist is 0.615 m out
+
+    cartesian:
+      max_linear_velocity: 0.25     # m/s   (250 mm/s, teleop; was 60 mm/s, v1.4 FAST)
+      max_angular_velocity: 0.262   # rad/s (15 deg/s, v1.4 FAST profile)
+
+    joint_limits:
+      max_velocity:     [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]        # rad/s
+      max_acceleration: [20.0, 20.0, 20.0, 20.0, 20.0, 20.0]  # rad/s^2  ARTS-authored
+      max_jerk:         [500.0, 500.0, 500.0, 500.0, 500.0, 500.0]  # rad/s^3  ARTS-authored
+
+    ik:
+      max_iterations: 8
+      position_tolerance: 1.0e-5     # m
+      orientation_tolerance: 1.0e-4  # rad
+      # Damped-least-squares lambda. 1e-6 is close enough to an undamped pseudoinverse
+      # that a straightened arm produced joint steps two orders of magnitude past the
+      # per-cycle allowance; 1e-4 conditions the solve without visibly slowing convergence
+      # in the well-behaved part of the workspace. It is a softener, NOT the guarantee --
+      # the hard bounds are Ruckig's joint limits and, after them, the Cartesian speed
+      # governor. A singularity-adaptive lambda would be better than
+      # a fixed one and is worth doing when the RCM constraint lands in Phase 2, since
+      # that QP has to reason about conditioning anyway.
+      damping: 1.0e-4
+
+    reference_timeout: 0.1  # s
+
+    # Decision 17's resolved-rate law: Ruckig driven to J+ V_ff + gain * error, the
+    # feedforward V_ff on ~/target_velocity from the teleop follower. Replaying a recorded
+    # 72 s teleop session on mock (2026-10-30): command-to-arm lag 83 ms in "position" mode
+    # (Ruckig arriving at rest every cycle), 29 ms here. E5 was measured in "position".
+    tracking:
+      mode: rate
+      gain: 5.0
+      feedforward_fade: [0.010, 0.020]  # m, backstop; primary fade on acceleration saturation
+      # RCM OFF: "ik" is the law E5, E6 and E8 were measured with. "qp" (the task-layer QP
+      # without the RCM rows) passes the same mock suite -- smoke, singularity round trip,
+      # shake sweep within 0.1 of the IK figures -- but has not run on a real arm, so it is
+      # not the default yet. With the RCM ON the QP always runs.
+      solver: ik
+
+    # Task-layer QP (decision 17): min |W (J qd - v)|^2 + damping |qd - qd_rest|^2, joint
+    # velocity and position limits as boxes; Ruckig keeps acceleration and jerk downstream.
+    task_qp:
+      orientation_weight: 0.1   # m per rad (a 100 mm lever)
+      damping: 1.0e-4
+      posture_gain: 1.0         # 1/s, pull toward the joints at activation / RCM switch
+      joint_limit_gain: 5.0     # 1/s, approach rate onto a position limit
+      # joint_weights: [1, 1, 1, 1, 1, 1]  # default (unset) = all 1: the six UR joints are one
+      #   category. Not written as [] here: an empty YAML list has no type, and the controller
+      #   then fails to load (2026-11-01).
+
+    # Remote centre of motion, switched live by <arm>/set_rcm (off at every activation).
+    rcm:
+      orientation_task: none    # tip position only: the adapter's shaft is perpendicular
+                                # to wrist_3, so shaft roll waits for the instrument roll disc
+      default_insertion_depth: 0.10 # m, set_rcm on with no depth before any RCM was engaged
+      shaft_axis: [0.0, 0.0, 1.0]   # in the tip frame, flange -> tip
+      gain: 10.0                # 1/s, deviation decay
+      engage_max_deviation: 0.002   # m, set_rcm(on) refused beyond this
+      fault_deviation: 0.005    # m, measured beyond this with the RCM on: hold
+      insertion_limits: [0.005, 0.30]   # m, tip beyond the point
+      insertion_gain: 5.0       # 1/s

@@ -1,0 +1,27 @@
+# Set the live tool-tip frame offset used by the servo controller.
+#
+# The offset is a rigid transform from the arm's flange frame to the frame the controller
+# actually servos, and it is applied INSIDE the kinematic model rather than as a display
+# transform. That distinction is the whole point: the Jacobian is then computed to the
+# real tip, which is what the RCM constraint needs in order to know the true shaft line.
+#
+# This exists because tip offsets change constantly during calibration and experiments.
+# The v1.4 reference exposed the equivalent only as an OROCOS deployer operation, which
+# meant it could not be scripted, logged, or set from a launch file. Here it is a
+# service, and every accepted change is published on ~/tool_tip_offset for the recording.
+#
+# Units are METRES and the transform is flange -> tip, expressed in the flange frame.
+# Note the sign convention differs from the v1.4 operation, which took millimetres and
+# internally negated them; do not port numbers across without converting.
+#
+# Applied at the top of the next control cycle via a real-time-safe buffer, so calling
+# this never blocks the 500 Hz loop. A request whose translation exceeds
+# max_tool_tip_offset (a controller parameter) is rejected rather than clamped, because a
+# silently clamped tip offset would corrupt the very calibration it is being used for.
+geometry_msgs/Pose offset
+---
+bool success
+string message
+# Echoed back so a caller can confirm what the controller actually holds, including the
+# normalization applied to the quaternion.
+geometry_msgs/Pose applied_offset

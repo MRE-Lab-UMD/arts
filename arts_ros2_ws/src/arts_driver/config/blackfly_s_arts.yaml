@@ -1,0 +1,298 @@
+#
+# ARTS parameter DEFINITION file for hardware-triggered Blackfly S cameras.
+#
+# This is a `parameter_file` for spinnaker_camera_driver: it maps ROS parameter names to
+# GenICam node paths. It does NOT contain values — those come from the launch file.
+# Used only when cameras.launch.py is given trigger:=true; the free-running path keeps
+# upstream's config/blackfly_s.yaml, because that is what the committed 40 Hz baselines in
+# docs/benchmarks/ were taken with and re-pointing it would invalidate their reproducibility.
+#
+# WHY THIS FILE EXISTS AT ALL — two reasons, and the second is the important one.
+#
+# 1. Upstream's blackfly_s.yaml has no entry for DigitalIOControl/LineSource, so
+#    `ExposureActive` cannot be routed onto Line 1 through it, and Line 1 is what the ESP32
+#    sync box captures (AGENTS.md decision 14). `line1_linesource` below is that entry. If
+#    upstream accepts it, this file can shrink or disappear.
+#
+# 2. THE ORDER OF THE ENTRIES BELOW IS FUNCTIONAL, NOT COSMETIC, and upstream's order is
+#    wrong for us. Traced through spinnaker_camera_driver/src/camera.cpp on 2026-08-18:
+#    readParameters() registers the on-set-parameters callback (camera.cpp:438) BEFORE
+#    createCameraParameters() runs (camera.cpp:179); readParameterDefinitionFile() builds
+#    parameterList_ by push_back in FILE order; createCameraParameters() then declares each
+#    entry in that order, and every declaration carrying a launch-supplied override fires
+#    parameterChanged() immediately, which writes to the camera there and then. So this
+#    file — not the launch file — decides the sequence in which the camera is written to.
+#    Upstream already knows this; see the "offset must come after image width reduction!"
+#    comment in its own file.
+#
+# Three orderings here are load-bearing. Changing them is a functional change.
+#
+#   a) SELECTOR BEFORE ATTRIBUTE. GenICam configures digital I/O and chunk data through a
+#      selector: you point LineSelector (or ChunkSelector) at a target, and LineMode /
+#      LineSource / ChunkEnable then apply to whatever is currently selected. That is why
+#      every lineN_* and chunk_*_* name in upstream's file maps to the SAME node. Put an
+#      attribute before its selector and it silently configures a different pin.
+#
+#   b) trigger_mode IS LAST. On FLIR cameras the trigger features are not writable while
+#      TriggerMode is On, so configuring source/activation/overlap/delay must complete
+#      before the trigger is armed. Upstream's file lists trigger_mode BEFORE
+#      trigger_source, which means enabling a hardware trigger through it can leave
+#      TriggerSource at its default of Software while the driver logs only a warning. Our
+#      order is safe whether or not that write lock exists; upstream's is not.
+#
+#   c) AUTO OFF BEFORE THE MANUAL VALUE. Setting exposure_time while ExposureAuto is
+#      Continuous is a write the camera immediately overrides.
+#
+parameters:
+  #
+  # -------- factory settings into camera RAM, before anything else. The launch sets
+  # user_set_selector: Default and fires user_set_load, so every session starts from the
+  # factory set whatever the camera's flash boots (UserSetDefault). Nothing is written to
+  # flash. Both ARTS cameras boot a UserSet1 saved with the Spinnaker GUI that differs from
+  # factory in ISP, frame-rate limiter, gamma, white balance, colour matrix and sharpening
+  # (node-map diff 2026-10-28, docs/modules/pilot_flir_camera.md); gamma and white balance
+  # are not otherwise written by this file. Selector before command, ordering (a).
+  #
+  # Stop acquisition first. A camera whose driver was killed rather than shut down keeps
+  # acquiring, and then UserSetLoad and PixelFormat are not writable (2026-10-28, after a
+  # SIGKILL: strict config stopped the next launch). A command executes on any value.
+  - name: acquisition_stop
+    type: command
+    node: AcquisitionControl/AcquisitionStop
+  - name: user_set_selector
+    type: enum
+    node: UserSetControl/UserSetSelector
+  - name: user_set_load
+    type: command
+    node: UserSetControl/UserSetLoad
+  #
+  # -------- then disarm, before any other write. Measured 2026-10-27, firmware 1801.0.9.0, camera booting from a
+  # saved UserSet: without this entry IspEnable was rejected as "not writable" after a power
+  # cycle; with it, accepted on both cameras from a power cycle. The cameras boot with
+  # TriggerMode already Off, so the lock is not the armed trigger itself; the mechanism is
+  # unknown — keep this entry until it is understood. Same node as trigger_mode (re-armed last).
+  #
+  - name: trigger_mode_disarm
+    type: enum
+    node: AcquisitionControl/TriggerMode
+  #
+  # -------- image format control
+  #
+  - name: pixel_format
+    type: enum
+    # BayerRG8 for recording. Never RGB8 or a compressed format for training data
+    # (AGENTS.md decision 5) — debayering is an offline decision, not a capture one.
+    node: ImageFormatControl/PixelFormat
+  - name: isp_enable
+    type: bool
+    # Must be written, not inherited. The on-camera ISP caps the sensor line rate:
+    # measured 2026-10-27 on 24057132 at firmware 1801.0.9.0, ISP on gives 40 099 lines/s
+    # and 17.25 fps at 3072x2048 (a 30 Hz trigger then loses frames and the exposure
+    # start drifts against it); ISP off gives 128 700 lines/s and 59.6 fps. Factory Default
+    # has it off, but a camera booting from a saved UserSet can have it on.
+    node: ImageFormatControl/IspEnable
+  #
+  # Recording resolution: 2x2 binning, selector and mode before the factor (ordering a).
+  # Measured 2026-10-28 on both cameras, firmware 1801.0.9.0, factory set in RAM: Sensor
+  # binning has max 1, ISP binning is not writable with IspEnable off; selector All with
+  # mode Average gives 1536x1024 BayerRG8 whose four Bayer sites keep the full-resolution
+  # levels (R 21.0 vs 21.0, B 17.5 vs 17.6), i.e. colour-aware binning, still raw Bayer, same
+  # field of view. Max frame rate unchanged at 59.6 fps. Factor 1 restores 3072x2048.
+  #
+  - name: binning_selector
+    type: enum
+    node: ImageFormatControl/BinningSelector
+  - name: binning_horizontal_mode
+    type: enum
+    node: ImageFormatControl/BinningHorizontalMode
+  - name: binning_vertical_mode
+    type: enum
+    node: ImageFormatControl/BinningVerticalMode
+  - name: binning_horizontal
+    type: int
+    node: ImageFormatControl/BinningHorizontal
+  - name: binning_vertical
+    type: int
+    node: ImageFormatControl/BinningVertical
+  #
+  # -------- analog control (auto off, then the value — ordering (c))
+  #
+  - name: gain_auto
+    type: enum
+    # "Continuous" or "Off"
+    node: AnalogControl/GainAuto
+  - name: gain
+    type: float
+    node: AnalogControl/Gain
+  #
+  # White balance: auto off, then each ratio behind its selector (orderings a and c).
+  #
+  - name: balance_white_auto
+    type: enum
+    node: AnalogControl/BalanceWhiteAuto
+  - name: balance_ratio_selector_red
+    type: enum
+    node: AnalogControl/BalanceRatioSelector
+  - name: balance_ratio_red
+    type: float
+    node: AnalogControl/BalanceRatio
+  - name: balance_ratio_selector_blue
+    type: enum
+    node: AnalogControl/BalanceRatioSelector
+  - name: balance_ratio_blue
+    type: float
+    node: AnalogControl/BalanceRatio
+  - name: gamma_enable
+    type: bool
+    node: AnalogControl/GammaEnable
+  - name: gamma
+    type: float
+    node: AnalogControl/Gamma
+  #
+  # -------- digital IO control (ordering (a): selector, then attributes)
+  #
+  # Line 1 is the ExposureActive strobe the sync box timestamps. Measured on camera
+  # 24057131 at firmware 1801.0.9.0, these three are ALREADY the factory default
+  # (Output / ExposureActive / OptoCoupled, with User Set Default = Default). They are set
+  # explicitly regardless: a vendor default is not a guarantee, and the purpose of this
+  # file is that a fresh camera behaves identically to this one.
+  - name: line1_selector
+    type: enum
+    # "Line1"
+    node: DigitalIOControl/LineSelector
+  - name: line1_linemode
+    type: enum
+    # "Input" or "Output" — must be "Output" for the strobe
+    node: DigitalIOControl/LineMode
+  - name: line1_linesource
+    # NOT IN UPSTREAM'S FILE. Reason 1 in the header.
+    type: enum
+    # "ExposureActive" for the sync box. Other values exist (Off, UserOutput*, Counter*).
+    node: DigitalIOControl/LineSource
+  #
+  # Line 0 is the opto-isolated trigger INPUT. It needs no entry here: its LineMode is
+  # fixed at Input on an opto-coupled line and its LineSource is meaningless for an input.
+  # Selecting it as the trigger source is done by trigger_source below.
+  #
+  # Line 2 is a bench diagnostic, not part of the sync path. It carries a switchable 3.3 V
+  # rail (factory default OFF, measured on 24057131), and the pigtail's colour-to-pin
+  # mapping is otherwise unverifiable without destructive inspection: energizing it puts a
+  # known DC voltage on the wire that FLIR documents as red/pin 3, referenced to brown/pin 6.
+  # If red-to-brown reads 3.3 V, the whole colour convention is confirmed, and with it that
+  # black is the opto input and blue the opto ground.
+  - name: line2_selector
+    type: enum
+    # "Line2"
+    node: DigitalIOControl/LineSelector
+  - name: line2_v33enable
+    type: bool
+    node: DigitalIOControl/V3_3Enable
+  # -------- acquisition control: exposure (ordering (c))
+  #
+  - name: exposure_auto
+    type: enum
+    # MUST be "Off" for sync work. Continuous auto exposure makes the ExposureActive pulse
+    # width wander frame to frame, and on this camera it settles near the 15000 us upper
+    # limit, which cannot reach 30 Hz with TriggerOverlap Off.
+    node: AcquisitionControl/ExposureAuto
+  - name: exposure_time
+    type: float
+    node: AcquisitionControl/ExposureTime
+  - name: frame_rate_enable
+    type: bool
+    # False when hardware triggered: the ESP32 sets the rate, and leaving the camera's own
+    # rate limiter enabled gives two things that can throttle acquisition instead of one.
+    node: AcquisitionControl/AcquisitionFrameRateEnable
+  - name: frame_rate
+    type: float
+    node: AcquisitionControl/AcquisitionFrameRate
+  #
+  # -------- acquisition control: trigger (ordering (b): mode LAST)
+  #
+  - name: trigger_selector
+    type: enum
+    # "FrameStart" — one trigger, one frame. "AcquisitionStart" would start a free-running
+    # stream on the first pulse and then ignore every pulse after it.
+    node: AcquisitionControl/TriggerSelector
+  - name: trigger_source
+    type: enum
+    # "Line0", the opto-isolated input (decision 14). NOT "Line3": upstream's own
+    # follower_example.launch.py uses Line3, whose absolute maximum input-high is 3.6 V.
+    node: AcquisitionControl/TriggerSource
+  - name: trigger_activation
+    type: enum
+    # "RisingEdge", "FallingEdge", "AnyEdge", "LevelHigh", "LevelLow". If the camera does
+    # not fire on RisingEdge, try FallingEdge before suspecting the wiring — the sense of an
+    # opto-isolated input depends on LineInverter, which defaults to 0.
+    node: AcquisitionControl/TriggerActivation
+  - name: trigger_overlap
+    type: enum
+    # "ReadOut", NOT the "Off" this camera defaults to for the FrameStart selector. With
+    # Off, a pulse arriving while the previous frame is still reading out is DISCARDED, and
+    # at 30 Hz a ~17 ms readout plus a multi-ms exposure leaves very little margin — the
+    # symptom is dropped frames that look like a trigger fault.
+    node: AcquisitionControl/TriggerOverlap
+  - name: trigger_delay
+    type: float
+    # Microseconds. THE FLOOR ON THIS MODEL IS 379, not the 9 that upstream's
+    # blackfly_s.yaml comments claim — verified 2026-08-18 by the camera rejecting 9 with
+    # OutOfRangeException. The default therefore sits at the floor, so two untouched
+    # cameras agree. It is still a per-camera value, so set it explicitly and identically
+    # on both and record it beside every skew figure (decision 15): a mismatch produces a
+    # skew the sync box measures perfectly and that describes nothing physical.
+    node: AcquisitionControl/TriggerDelay
+  - name: trigger_mode
+    # LAST. See ordering (b) in the header.
+    type: enum
+    # "On" or "Off"
+    node: AcquisitionControl/TriggerMode
+  #
+  # -------- chunk control (ordering (a) again: selector, then enable)
+  #
+  # chunk_enable_frame_id is not optional decoration. Decision 15's first hop joins an image
+  # to a trigger pulse by integer-matching this FrameID against CameraSyncPulse.pulse_index
+  # — the one hop in the whole chain that no clock can corrupt. ChunkModeActive defaults to
+  # 0 on this camera, so without these entries the FrameID is never transmitted and the join
+  # has nothing to work with.
+  #
+  - name: chunk_mode_active
+    type: bool
+    node: ChunkDataControl/ChunkModeActive
+  - name: chunk_selector_frame_id
+    type: enum
+    node: ChunkDataControl/ChunkSelector
+  - name: chunk_enable_frame_id
+    type: bool
+    node: ChunkDataControl/ChunkEnable
+  - name: chunk_selector_exposure_time
+    type: enum
+    node: ChunkDataControl/ChunkSelector
+  - name: chunk_enable_exposure_time
+    type: bool
+    node: ChunkDataControl/ChunkEnable
+  - name: chunk_selector_gain
+    type: enum
+    node: ChunkDataControl/ChunkSelector
+  - name: chunk_enable_gain
+    type: bool
+    node: ChunkDataControl/ChunkEnable
+  - name: chunk_selector_timestamp
+    type: enum
+    node: ChunkDataControl/ChunkSelector
+  - name: chunk_enable_timestamp
+    type: bool
+    node: ChunkDataControl/ChunkEnable
+  #
+  # -------- stream / link
+  #
+  - name: stream_buffer_handling_mode
+    type: enum
+    # "NewestFirst", "OldestFirst", "NewestOnly", "OldestFirstOverwrite". OldestFirst for
+    # recording: dropping the oldest frame silently renumbers nothing but loses data the
+    # FrameID join would otherwise have caught as a gap.
+    node: BufferHandlingControl/StreamBufferHandlingMode
+  - name: device_link_throughput_limit
+    type: int
+    # Present so the pair can be throttled deliberately rather than colliding on a shared
+    # controller. See the controller-budget discussion in docs/modules/pilot_flir_camera.md.
+    node: DeviceControl/DeviceLinkThroughputLimit

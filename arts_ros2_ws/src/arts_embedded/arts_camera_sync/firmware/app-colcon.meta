@@ -1,0 +1,39 @@
+{
+    "_comment": [
+        "Application override for micro_ros_espidf_component's own colcon.meta, picked up",
+        "automatically because it sits at $PROJECT_DIR/app-colcon.meta (see the component's",
+        "CMakeLists.txt, which passes it to libmicroros.mk as APP_COLCON_META).",
+        "",
+        "WHY IT EXISTS: THE TRANSPORT IS COMPILED INTO libmicroros.a, AND THE KCONFIG OPTION",
+        "DOES NOT SELECT IT. Setting CONFIG_MICRO_ROS_ESP_UART_TRANSPORT=y only gates Kconfig",
+        "sections; the actual choice is -DRMW_UXRCE_TRANSPORT, which the component's colcon.meta",
+        "hardcodes to 'udp'. Without this file the library is built for UDP while the firmware",
+        "calls rmw_uros_set_custom_transport(), and the generated rmw_microxrcedds_c/config.h",
+        "leaves RMW_UXRCE_TRANSPORT_CUSTOM undefined — so the custom-transport prototypes are",
+        "never declared. Observed 2026-08-18: the visible error was an implicitly-declared",
+        "rmw_uros_set_custom_transport, which points at the call site rather than at the",
+        "library's configuration.",
+        "",
+        "The whole rmw_microxrcedds block is repeated rather than just the transport line,",
+        "because meta merging is per-package and it must not matter whether colcon replaces or",
+        "appends this package's cmake-args. Every value below is upstream's except the transport.",
+        "",
+        "CHANGING THIS FILE REQUIRES A libmicroros REBUILD, which is NOT triggered by idf.py:",
+        "libmicroros.mk skips its work when libmicroros.a already exists. Delete libmicroros.a,",
+        "include/, and micro_ros_src/{build,install} in the component to force it."
+    ],
+    "names": {
+        "rmw_microxrcedds": {
+            "cmake-args": [
+                "-DRMW_UXRCE_XML_BUFFER_LENGTH=400",
+                "-DRMW_UXRCE_TRANSPORT=custom",
+                "-DRMW_UXRCE_MAX_NODES=1",
+                "-DRMW_UXRCE_MAX_PUBLISHERS=2",
+                "-DRMW_UXRCE_MAX_SUBSCRIPTIONS=2",
+                "-DRMW_UXRCE_MAX_SERVICES=1",
+                "-DRMW_UXRCE_MAX_CLIENTS=1",
+                "-DRMW_UXRCE_MAX_HISTORY=1"
+            ]
+        }
+    }
+}

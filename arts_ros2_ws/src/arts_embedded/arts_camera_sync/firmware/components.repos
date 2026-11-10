@@ -1,0 +1,18 @@
+# Third-party ESP-IDF components for the sync-box firmware. Fetched into components/, which
+# is gitignored — nothing third-party is vendored into this repo.
+#
+#   cd firmware && vcs import components < components.repos
+#
+# This lives here rather than in a middle-overlay .repos manifest because it is an ESP-IDF
+# component built by the xtensa toolchain, not a ROS package: dropping it into a colcon
+# workspace would make colcon try to build it for the host. The pinning rule still applies —
+# upstream ships per-distro BRANCHES, so this is the jazzy-branch HEAD at activation time
+# (2026-08-17). The agent side is pinned in
+# middle_overlay_ros2_wss/oem_ros2_ws/oem_ros2.repos and the two MUST be bumped together:
+# a client and agent from different micro-ROS generations fail with a session handshake
+# error that reads like a wiring or baud-rate fault.
+repositories:
+  micro_ros_espidf_component:
+    type: git
+    url: https://github.com/micro-ROS/micro_ros_espidf_component.git
+    version: 16cf0d534e618c2752e5546710cd2c81c0a586cc

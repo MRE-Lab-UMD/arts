@@ -1,0 +1,48 @@
+# Ruckig — online trajectory generation (jerk-limited)
+# https://github.com/pantor/ruckig
+#
+# Replaces Reflexxes Type II from the prior system (not open source).
+#
+# DECIDED 2026-08-12: RUCKIG IS NOT BUILT FROM SOURCE. It comes from apt as
+# `ros-jazzy-ruckig` (upstream 0.9.2), and this directory is a decision record rather
+# than a recipe. `build.sh` was deleted deliberately — leaving one here would let someone
+# recreate the exact two-Ruckigs-on-one-machine hazard this decision exists to remove.
+#
+# The evidence, from a full audit of the 0.9.2 -> 0.14.0 range:
+#
+#   1. NOTHING TO BUY. `position_third_step2.cpp` — the time-synchronization solver where
+#      the reported failures originate — is unchanged modulo renames across that range.
+#      0.9.2, 0.14.0 and 0.15.3 compiled from tags and run over 1.4M randomized trials
+#      give bit-identical duration checksums and identical error counts, and all three
+#      reproduce the tracker's pathological inputs identically. Upstream is explicit that
+#      numerical robustness is a Pro-edition feature: "we maintain and refer to the Pro
+#      version for improved numerical stability... please don't expect a fix from our
+#      side at the moment" (pantor/ruckig#240).
+#   2. 0.14.0 WAS THE WORST CHOICE OF THE THREE. A 2023 refactor put a std::function in
+#      Trajectory::at_time(), which update() calls every cycle, so 0.14.0 heap-allocates
+#      once per control cycle. Measured: 0.9.2 = 0 allocations, 0.14.0 = 1, 0.15.3 = 0.
+#      Fixed in 0.15.3 by PR #214; the regression window is exactly 0.12.x-0.14.0.
+#   3. ONE RUCKIG, STRUCTURALLY. The apt copy lives in /opt/ros/jazzy, which is always on
+#      CMAKE_PREFIX_PATH as the underlay. Using it means there is no second copy for
+#      find_package to prefer — which is the failure mode that started this question.
+#   4. FROZEN IN PRACTICE. ros-jazzy-ruckig has been 0.9.2 since 2023, in every distro
+#      from Humble to Rolling. The bump request (ros2-gbp/ruckig-release#1) is still open.
+#
+# What 0.9.2 gives up: input-validation error messages, `output.new_jerk`, and infinite/
+# zero kinematic limits. Diagnostics and flexibility, not correctness, and none of it is
+# needed today.
+#
+# Do NOT pin the apt package with `=`. The Debian revision (0.9.2-5noble.20260225.142307)
+# changes on rebuilds while upstream stays 0.9.2, so an exact apt pin becomes a
+# fresh-machine build failure — the same rolling-repo problem as ur_description. The
+# guard is instead a hard version assertion at CMake configure time in arts_controllers,
+# which is what makes a silent substitution loud.
+APT_PACKAGE=ros-jazzy-ruckig
+UPSTREAM_VERSION=0.9.2
+#
+# IF THIS EVER GOES BACK TO SOURCE, use 0.15.3 and not 0.14.0: same numerics, allocation
+# fixed, still C++17, still an ordinary ruckig::ruckig target. Do NOT use 0.17.3 or later
+# — those make cxx_std_20 a PUBLIC compile feature, which propagates a C++20 requirement
+# into arts_controllers as a side effect of a dependency, while Jazzy targets C++17.
+FALLBACK_GIT_URL=https://github.com/pantor/ruckig.git
+FALLBACK_GIT_REF=v0.15.3

@@ -1,0 +1,10 @@
+# MCAP writer config for ARTS image bags.
+# Passed to: ros2 bag record --storage-config-file <this file>
+# MCAP is the default rosbag2 storage plugin in Jazzy, so no -s flag is needed.
+#
+# Tuned for high-bandwidth image streams (e.g. 40 fps × 6.3 MP BayerRG8).
+# For production dual-bag recording, arts_record's profiles use this config
+# for the image bag (NVMe-bound) and a separate config for the state bag.
+chunkSize: 4194304
+compression: "Zstd"
+compressionLevel: "Default"

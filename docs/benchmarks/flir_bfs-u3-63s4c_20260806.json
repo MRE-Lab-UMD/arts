@@ -1,0 +1,29 @@
+{
+  "bag_path": "/bench_output/flir_bench",
+  "bag_size_mb": 26368.78,
+  "topics": {
+    "/bench_camera/image_raw": {
+      "total_frames": 23972,
+      "duration_s": 599.375,
+      "rate_mean_hz": 39.99,
+      "rate_std_hz": 0.0,
+      "rate_min_hz": 39.85,
+      "rate_max_hz": 40.02,
+      "period_mean_ms": 25.004,
+      "period_std_ms": 0.002,
+      "drops": 0,
+      "drop_threshold_ms": 37.5,
+      "nominal_hz": 40.0
+    }
+  },
+  "date": "2026-08-06 07:11 UTC",
+  "image_digest": "sha256:7365f6bd964295866981f3307893cd475096319b5778f13db077f91da38ef618",
+  "resource_usage": {
+    "cpu_mean_pct": 125.9,
+    "cpu_max_pct": 152.9,
+    "mem_mean_pct": 1.9,
+    "mem_max_pct": 2.4,
+    "mem_peak": "755.6MiB / 31.13GiB",
+    "samples": 101
+  }
+}

@@ -1,0 +1,437 @@
+arts_cartesian_servo_controller:
+  joints:
+    type: string_array
+    default_value: []
+    description: >
+      Arm joints to command, in kinematic order from base to flange. Names must match the
+      URDF and the hardware interface exactly. Six entries for a UR arm.
+    validation:
+      not_empty<>: null
+      unique<>: null
+
+  base_frame:
+    type: string
+    default_value: ""
+    description: >
+      URDF frame the commanded pose is expressed in, and the root of the kinematic chain
+      used for IK. Usually the arm base link.
+    validation:
+      not_empty<>: null
+
+  flange_frame:
+    type: string
+    default_value: ""
+    description: >
+      URDF frame the tool is bolted to. The servoed tip frame is this frame composed with
+      the live tool-tip offset, so with a zero offset the controller servos the flange.
+    validation:
+      not_empty<>: null
+
+  tip_frame:
+    type: string
+    default_value: ""
+    description: >
+      tf name of the servoed tip. The controller publishes flange_frame -> tip_frame on
+      /tf_static with the offset it is using (at configure and on every accepted
+      ~/set_tool_tip_offset), so RViz shows where the controller thinks the tip is. Empty
+      publishes nothing.
+
+  tool_tip_offset:
+    type: double_array
+    default_value: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    description: >
+      Initial flange-to-tip transform as [x, y, z, qx, qy, qz, qw], translation in METRES.
+      Overwritten at runtime by the ~/set_tool_tip_offset service. Present as a parameter
+      so a known tool can be brought up already calibrated instead of requiring a service
+      call after every start.
+    validation:
+      fixed_size<>: 7
+
+  max_tool_tip_offset:
+    type: double
+    default_value: 0.8
+    description: >
+      Largest accepted tool-tip translation, in metres. Requests beyond this are REJECTED
+      rather than clamped: a silently clamped offset would corrupt the calibration it is
+      being used for. The da Vinci X adapter's wrist sits 0.615 m from the flange; a
+      value far beyond that almost certainly means millimetres were sent instead of metres.
+    validation:
+      gt<>: 0.0
+
+  cartesian:
+    max_linear_velocity:
+      type: double
+      default_value: 0.06
+      description: >
+        Tool-tip linear speed cap in m/s. This is the surgically meaningful limit and the
+        one an operator notices; the joint limits below are a safety backstop, not a
+        speed setting. The 0.06 default is the v1.4 reference's FAST profile (60 mm/s).
+      validation:
+        gt<>: 0.0
+
+    max_angular_velocity:
+      type: double
+      default_value: 0.262
+      description: >
+        Tool-tip angular speed cap in rad/s. The 0.262 default is 15 deg/s, the v1.4
+        reference's FAST profile.
+      validation:
+        gt<>: 0.0
+
+  joint_limits:
+    max_velocity:
+      type: double_array
+      default_value: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+      description: >
+        Per-joint velocity limit in rad/s for the Ruckig stage. See config/ur5e_servo.yaml
+        for where these numbers come from and why they are ARTS's rather than the vendor's.
+      validation:
+        element_bounds<>: [0.0, 3.14159]
+
+    max_acceleration:
+      type: double_array
+      default_value: [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
+      description: >
+        Per-joint acceleration limit in rad/s^2. Universal Robots publishes NO acceleration
+        limit for any UR5e joint, so this is an ARTS-authored value; see
+        config/ur5e_servo.yaml.
+      validation:
+        element_bounds<>: [0.0, 100.0]
+
+    max_jerk:
+      type: double_array
+      default_value: [50.0, 50.0, 50.0, 50.0, 50.0, 50.0]
+      description: >
+        Per-joint jerk limit in rad/s^3. ARTS-authored; no vendor figure exists.
+      validation:
+        element_bounds<>: [0.0, 1000.0]
+
+  ik:
+    max_iterations:
+      type: int
+      default_value: 8
+      description: >
+        Damped-least-squares iteration cap per control cycle. Bounded because the cycle
+        has a hard deadline: an unbounded solver that occasionally takes 200 iterations,
+        as the v1.4 reference allowed, is a deadline miss waiting to happen. Eight is
+        generous when the solver is warm-started from the previous solution and the target
+        moves micrometres per cycle; it only matters after a large jump.
+      validation:
+        bounds<>: [1, 100]
+
+    position_tolerance:
+      type: double
+      default_value: 1.0e-5
+      description: "Positional convergence tolerance in metres (10 um)."
+      validation:
+        gt<>: 0.0
+
+    orientation_tolerance:
+      type: double
+      default_value: 1.0e-4
+      description: "Orientation convergence tolerance in radians (about 0.006 deg)."
+      validation:
+        gt<>: 0.0
+
+    damping:
+      type: double
+      default_value: 1.0e-6
+      description: >
+        Levenberg-Marquardt damping added to J*J^T before the solve. Nonzero so the solve
+        stays finite near singularities. The v1.4 reference used an UNDAMPED pseudoinverse
+        (KDL ChainIkSolverVel_pinv), which is well behaved until the arm approaches a
+        singular configuration and then is not; damping is the deliberate change.
+      validation:
+        gt<>: 0.0
+
+  reference_timeout:
+    type: double
+    default_value: 0.1
+    description: >
+      Seconds without a fresh reference before the controller holds position. Zero
+      disables the check. The v1.4 reference had NO command timeout, which meant a dead
+      upstream publisher left the last target latched forever; holding position is the
+      safer failure.
+    validation:
+      gt_eq<>: 0.0
+
+  command_interface:
+    type: string
+    default_value: "position"
+    description: >
+      Joint command interface the controller claims. 'position': joint positions, which the
+      UR driver executes with servoj (smoothing look-ahead >= 30 ms plus the UR's own servo;
+      34-40 ms from command to the measured joints on the left UR5e, 2026-10-30). 'velocity':
+      joint velocities, which the UR driver executes with speedj (no look-ahead; 4-9 ms in the
+      same test, docs/benchmarks/servoj_speedj_ab_20261030.md); requires
+      tracking.mode rate, and the rate law then corrects against the MEASURED joint
+      positions every cycle, because nothing else closes the position loop. On a lost
+      command stream the UR script brakes with stopj after robot_receive_timeout (0.04 s).
+    validation:
+      one_of<>: [["position", "velocity"]]
+
+  tracking:
+    mode:
+      type: string
+      default_value: "position"
+      description: >
+        How Ruckig follows the IK solution. 'position': Ruckig plans to ARRIVE at rest at
+        the IK solution every cycle (the original mode; E5 was measured in it). It trails a
+        moving target, by 85 ms for a recorded teleop session on mock (2026-10-30), because
+        it keeps braking. 'rate': decision 17's resolved-rate law. Ruckig, in its VELOCITY
+        interface, is driven to the joint velocity J+ V_ff + gain * (q_ik - q_command), with
+        V_ff the tool twist from <arm>/tool_tip_target (when velocity_valid), so a moving
+        target is followed instead of braked for. Holding is always a position-interface stop.
+      validation:
+        one_of<>: [["position", "rate"]]
+
+    gain:
+      type: double
+      default_value: 5.0
+      description: >
+        Rate mode only: proportional gain in 1/s on the remaining joint-space error. With
+        V_ff = 0 it is a first-order follower with time constant 1/gain. Ruckig needs time to
+        change a joint's velocity under the jerk limit, and acting through that delay a gain
+        of 20 drove the wrist joints into a 0.2-0.9 deg limit cycle (mock, 2026-10-30); 10 and
+        5 settle to 0.007 deg. 5 for margin: the feedforward does the following, the gain
+        only removes what is left (30 ms vs 32 ms command-to-arm lag on mock at 5 vs 10).
+      validation:
+        gt<>: 0.0
+
+    feedforward_fade:
+      type: double_array
+      default_value: [0.010, 0.020]
+      description: >
+        Rate mode only: [start, end] of the BACKSTOP feedforward fade on the tip-to-target
+        distance, in metres: full feedforward below start, none above end. The primary fade
+        is on Ruckig's acceleration saturation (see the source). 2-5 mm throttled a 4 Hz,
+        15 mm shake the arm could follow (normal lag error ~7 mm) to 0.58 of its amplitude.
+      validation:
+        fixed_size<>: 2
+        element_bounds<>: [0.0, 0.1]
+    solver:
+      type: string
+      default_value: "ik"
+      description: >
+        Rate mode only, RCM OFF: how the tip error becomes a joint velocity. 'ik': the
+        original law, J+ V_ff + gain * (q_ik - q_command) with q_ik from the damped IK (E5,
+        E6 and E8 were measured with it). 'qp': the task-layer QP (decision 17) with the
+        Cartesian error, gain * log(tip^-1 target), and joint limits as hard bounds. With the
+        RCM ON the QP always runs, whatever this says.
+      validation:
+        one_of<>: [["ik", "qp"]]
+  task_qp:
+    orientation_weight:
+      type: double
+      default_value: 0.1
+      description: >
+        Metres per radian: the orientation rows are scaled by this so that 1 rad/s of
+        orientation error costs what this many m/s of position error does (0.1: a 100 mm
+        lever). Only matters where the task cannot be met exactly (at limits); with the RCM
+        the free DoF match the task rows exactly (see rcm.orientation_task).
+      validation:
+        gt<>: 0.0
+    damping:
+      type: double
+      default_value: 1.0e-4
+      description: >
+        Added to the QP Hessian diagonal (the damped-least-squares lambda of the IK path),
+        so the solve stays well posed at singularities and the null space is resolved
+        toward the smallest joint motion.
+      validation:
+        gt<>: 0.0
+    posture_gain:
+      type: double
+      default_value: 1.0
+      description: >
+        1/s. The damping term pulls the joints back toward a reference posture (the joints at
+        activation, and at every RCM switch) at this rate, so where the task leaves a
+        direction free (a wrist singularity; any redundancy once the instrument wrist joins)
+        the arm does not drift. Without it, a round trip through wrist_2 = 0 came back to
+        the same tip pose with joints up to 0.6 deg different (mock, 2026-11-01).
+      validation:
+        gt_eq<>: 0.0
+    joint_weights:
+      type: double_array
+      default_value: []
+      description: >
+        Per-joint weight on the damping/posture term, in params.joints order; empty = all 1.
+        Where the task leaves joints redundant, the QP moves the cheaper ones: the weighted
+        least-norm solution, MOPS's way of preferring instrument joints over arm joints. All
+        six UR joints are one category (equal weights); the instrument joints, once in the
+        controller, get lower weights. Has no effect while the task fixes every joint (six
+        UR joints under the RCM).
+    joint_limit_gain:
+      type: double
+      default_value: 5.0
+      description: >
+        1/s. Velocity bound toward a joint position limit: qd <= gain * (q_upper - q), so a
+        joint slows exponentially onto its limit instead of hitting it at speed.
+      validation:
+        gt<>: 0.0
+  rcm:
+    orientation_task:
+      type: string
+      default_value: "none"
+      description: >
+        Which part of the target orientation the task tracks while the RCM is on. 'none':
+        the tip position only; the remaining free DoF (the roll about the shaft) is held by
+        the posture term. The default for the da Vinci X adapter, whose shaft is
+        PERPENDICULAR to wrist_3 (88.5 mm beyond the flange): rolling that shaft about
+        itself takes the whole arm, which swings the elbow and shoulder toward the other
+        arms. Shaft roll belongs to the instrument's roll disc, so it waits for the
+        instrument joints. 'roll': the roll about the shaft as well (6 joints under the
+        2-row constraint have exactly 4 free DoF), right for a shaft coaxial with wrist_3.
+        'full': all three axes, for when the instrument wrist joints are in the controller.
+      validation:
+        one_of<>: [["none", "roll", "full"]]
+    default_insertion_depth:
+      type: double
+      default_value: 0.10
+      description: >
+        m. Depth used by set_rcm(from_current_shaft) when the request gives none (<= 0, as
+        `set_rcm.py on` sends) and no RCM has been engaged since the controller was configured; after that,
+        the depth of the last engaged RCM is reused, so off -> move -> on relocates the
+        point along the new shaft at the same depth.
+      validation:
+        gt<>: 0.0
+    shaft_axis:
+      type: double_array
+      default_value: [0.0, 0.0, 1.0]
+      description: >
+        The shaft direction in the tip frame, pointing from the flange toward the tip. The
+        shaft line is this axis through the tip frame origin. With no instrument wrist the
+        tip lies on the shaft; once the wrist is modelled the line is taken through the
+        wrist instead.
+      validation:
+        fixed_size<>: 3
+    gain:
+      type: double
+      default_value: 10.0
+      description: >
+        1/s. The RCM rows ask the shaft's perpendicular velocity at the point to remove
+        gain x the current deviation, so any deviation (from Ruckig's jerk-limited velocity
+        changes, or the UR's tracking) decays instead of accumulating: the RCM cannot drift.
+      validation:
+        gt<>: 0.0
+    engage_max_deviation:
+      type: double
+      default_value: 0.002
+      description: >
+        m. set_rcm(enable) is refused unless the shaft line already passes this close to the
+        point, so enabling never pulls the arm onto it.
+      validation:
+        gt<>: 0.0
+    fault_deviation:
+      type: double
+      default_value: 0.005
+      description: >
+        m. With the RCM on, a measured deviation beyond this latches a hold until the next
+        set_rcm call: something other than the controller (a collision, a lost stream) has
+        moved the shaft, and driving on would lever the cannula.
+      validation:
+        gt<>: 0.0
+    insertion_limits:
+      type: double_array
+      default_value: [0.005, 0.30]
+      description: >
+        m. [min, max] tip depth beyond the RCM point along the shaft, enforced as a QP
+        inequality: the tip never retracts back through the cannula and never inserts
+        further than the shaft allows.
+      validation:
+        fixed_size<>: 2
+    insertion_gain:
+      type: double
+      default_value: 5.0
+      description: >
+        1/s. The insertion inequality's approach rate onto its limits, as joint_limit_gain.
+      validation:
+        gt<>: 0.0
+
+  # The instrument wrist (decision 17, 2026-11-03 amendment): roll, wrist pitch and wrist yaw
+  # join the six UR joints in the model and the task QP. Geometry: collaborator A's values.
+  wrist:
+    enabled:
+      type: bool
+      default_value: false
+      description: >
+        Add the instrument's roll, pitch and yaw to the model (9 joints). Needs tracking.mode
+        rate and tracking.solver qp, and an instrument drive (disc_drive, or the fake
+        instrument on mock) publishing <arm>/tool_joint_states and reading
+        <arm>/tool_joint_target. Off: the 6-joint paths, unchanged.
+      read_only: true
+    joints:
+      type: string_array
+      default_value: ["tool_roll", "tool_wrist_pitch", "tool_wrist_yaw"]
+      description: >
+        Names of the three wrist joints in tool_joint_states / tool_joint_target (the arm
+        config prefixes them with tf_prefix, e.g. psm_left_tool_roll).
+      read_only: true
+    shaft_offset:
+      type: double
+      default_value: 0.0884
+      description: >
+        m. The shaft line's distance from the flange along tool0 z; the shaft runs along
+        tool0 +y (the adapter CAD: 88.388 mm; collaborator A: 88.4 mm).
+      read_only: true
+    pitch_distance:
+      type: double
+      default_value: 0.600
+      description: >
+        m. The wrist pitch axis along the shaft from the shaft origin (collaborator A's
+        bring-up value; to be measured per instrument). Frame E (the RCM frame) sits here.
+      read_only: true
+    pitch_to_yaw:
+      type: double
+      default_value: 0.009
+      description: >
+        m. Pitch axis to yaw axis along the shaft (collaborator A: 9.0 mm). The tip frame is
+        on the yaw axis, z along the shaft at zero wrist angles.
+      read_only: true
+    lower_limits:
+      type: double_array
+      default_value: [-4.7124, -1.2217, -1.2217]
+      description: rad. Roll, pitch, yaw lower limits (the instrument file's).
+      read_only: true
+    upper_limits:
+      type: double_array
+      default_value: [4.7124, 1.2217, 1.2217]
+      description: rad. Roll, pitch, yaw upper limits (the instrument file's).
+      read_only: true
+    max_velocity:
+      type: double_array
+      default_value: [3.0, 3.0, 3.0]
+      description: >
+        rad/s. Wrist joint velocity limits for the QP and Ruckig. disc_drive's instrument cap
+        (75 rpm on any disc) bounds them again downstream.
+      validation:
+        element_bounds<>: [0.0, 10.0]
+    max_acceleration:
+      type: double_array
+      default_value: [30.0, 30.0, 30.0]
+      description: rad/s^2.
+      validation:
+        element_bounds<>: [0.0, 500.0]
+    max_jerk:
+      type: double_array
+      default_value: [1000.0, 1000.0, 1000.0]
+      description: rad/s^3.
+      validation:
+        element_bounds<>: [0.0, 100000.0]
+    state_timeout:
+      type: double
+      default_value: 0.05
+      description: >
+        s. A wrist state older than this holds the arm and zeroes the wrist command (the
+        drive publishes at its 333 Hz bus rate).
+      validation:
+        gt<>: 0.0
+    roll_gain:
+      type: double
+      default_value: 2.5
+      description: >
+        1/s. Collaborator A's roll row: the UR's angular velocity about the shaft equals
+        -roll_gain x the shaft's roll away from its reference (set at activation and at every
+        RCM switch), so all rotation about the shaft is the instrument roll's.
+      validation:
+        gt<>: 0.0

@@ -1,0 +1,31 @@
+# Joint positions mock hardware starts a UR5e tool arm at.
+#
+# Mock hardware has no physics: it reports whatever initial_value the URDF gives it and
+# thereafter mirrors commands straight back. So this file alone decides the configuration every
+# hardware-free test of the servo controller begins in, and that turns out to matter a great deal.
+#
+# ur_description's default is elbow_joint = 0, i.e. the arm straight out and fully extended. That
+# is the ELBOW SINGULARITY: with the upper arm and forearm collinear, the Jacobian loses the
+# ability to move the tool along the arm's own axis at all. Commanding motion in that direction
+# from there produces exactly the pathology it should -- damped IK returns a near-zero step, the
+# tool creeps sideways instead of toward the target, and nothing converges. That cost most of a
+# day on 2026-08-12 before the shape of the numbers gave it away (IK residual of 20 um against a
+# commanded pose that itself never advanced). It was the arm's geometry, not the controller.
+#
+# The pose below is a quarter turn away from all three UR singularities, so an IK-based controller
+# is being measured on its own behaviour rather than on the conditioning of a degenerate start:
+#   elbow at +90 deg          -- as far from the elbow singularity as the joint range allows
+#   wrist_2 at -90 deg        -- wrist singularity is wrist_2 = 0 or +-180, where joints 4 and 6
+#                                become collinear
+#   wrist centre well off the shoulder axis -- the shoulder singularity is the wrist centre lying
+#                                on joint 1's axis
+#
+# It is also close to the pose a real arm would be jogged to before a cannula is engaged, so it
+# is a reasonable default for real-hardware bringup too, where it serves only as the RViz pose
+# until the first real joint states arrive.
+shoulder_pan_joint: 0.0
+shoulder_lift_joint: -1.5708
+elbow_joint: 1.5708
+wrist_1_joint: -1.5708
+wrist_2_joint: -1.5708
+wrist_3_joint: 0.0

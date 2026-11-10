@@ -1,0 +1,31 @@
+{
+  "benchmark": "rt_latency",
+  "date": "2026-08-10T09:35:44-04:00",
+  "verdict": "PASS",
+  "host": {
+    "machine_class": "devlaptop-6c12t",
+    "cpu": "Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz",
+    "logical_cpus": 12,
+    "distro": "Ubuntu 24.04.4 LTS",
+    "kernel": "6.8.1-1057-realtime",
+    "kernel_version": "#58-Ubuntu SMP PREEMPT_RT Mon Jul 20 15:39:03 UTC 2026",
+    "isolated_cores": "4-5,10-11",
+    "housekeeping_cores": "0,1,2,3,6,7,8,9",
+    "nvidia_driver": "595.84",
+    "nvidia_package": "nvidia-driver-595-open",
+    "gpu": "NVIDIA GeForce RTX 2070 with Max-Q Design"
+  },
+  "parameters": {
+    "priority": 80,
+    "interval_us": 1000,
+    "duration_idle_s": 60,
+    "duration_load_s": 300
+  },
+  "results_us": {
+    "idle_no_isolation":        {"min": 2, "avg": 3, "max": 211},
+    "load_no_isolation":        {"min": 4, "avg": 7, "max": 410},
+    "load_nvidia_isolated":     {"min": 4, "avg": 5, "max": 73}
+  },
+  "gpu_utilization_pct": {"mean": 33, "peak": 41},
+  "budget": {"period_us": 2000, "budget_us": 200, "used_pct": 3.6}
+}

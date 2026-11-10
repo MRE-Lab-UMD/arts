@@ -1,0 +1,121 @@
+{
+  "bag": "/tmp/sync5e_bag",
+  "tick_period_ns": 12.5,
+  "camera_count": 2,
+  "pulses": 8056,
+  "pulse_index_span": 8056,
+  "pulse_index_gaps": 0,
+  "time_synced_all": true,
+  "trigger_period_us": {
+    "n": 8056,
+    "unit": "us",
+    "mean": 33333.0,
+    "std": 0.0,
+    "min": 33333.0,
+    "max": 33333.0,
+    "spread": 0.0
+  },
+  "hardware": {
+    "trigger_to_exposure_us": {
+      "0": {
+        "n": 8027,
+        "unit": "us",
+        "mean": 712.1073782234959,
+        "std": 2.2620537772713454,
+        "min": 707.6125,
+        "max": 716.55,
+        "spread": 8.9375
+      },
+      "1": {
+        "n": 8047,
+        "unit": "us",
+        "mean": 709.3176245805887,
+        "std": 2.2655589248496515,
+        "min": 704.95,
+        "max": 713.75,
+        "spread": 8.799999999999955
+      }
+    },
+    "exposure_width_us": {
+      "0": {
+        "n": 8027,
+        "unit": "us",
+        "mean": 4977.021757817515,
+        "std": 0.04298585134695845,
+        "min": 4976.85,
+        "max": 4977.1,
+        "spread": 0.25
+      },
+      "1": {
+        "n": 8047,
+        "unit": "us",
+        "mean": 4976.338157077363,
+        "std": 0.04448930242917636,
+        "min": 4976.175,
+        "max": 4976.4375,
+        "spread": 0.2624999999998181
+      }
+    },
+    "strobes_missing": {
+      "0": 29,
+      "1": 9
+    },
+    "skew_signed_us": {
+      "n": 8018,
+      "unit": "us",
+      "mean": 2.7910716512846094,
+      "std": 3.18786853799334,
+      "min": -5.5625,
+      "max": 11.0875,
+      "spread": 16.65
+    },
+    "skew_abs_max_us": 11.0875
+  },
+  "tick_to_ros_fit": {
+    "slope": 1.0000076859794849,
+    "slope_ppm_error": 7.685979484861605,
+    "residual_std_us": 170.69052016690785
+  },
+  "meta_topics": {
+    "/camera_left/meta": 8090,
+    "/camera_right/meta": 8090
+  },
+  "software": {
+    "pairs": 8090,
+    "camera_time_delta_us": {
+      "n": 8090,
+      "unit": "us",
+      "mean": 1563423396.3317795,
+      "std": 176.53447715766407,
+      "min": 1563423090.312,
+      "max": 1563423705.592,
+      "spread": 615.2799999713898
+    },
+    "drift_us_per_s": -2.2672248486290294,
+    "detrended_residual_std_us": 3.22286325872239,
+    "reported_exposure_time_us": {
+      "/camera_left/meta": {
+        "n": 8090,
+        "unit": "us",
+        "mean": 5004.0,
+        "std": 0.0,
+        "min": 5004.0,
+        "max": 5004.0,
+        "spread": 0.0
+      },
+      "/camera_right/meta": {
+        "n": 8090,
+        "unit": "us",
+        "mean": 5004.0,
+        "std": 0.0,
+        "min": 5004.0,
+        "max": 5004.0,
+        "spread": 0.0
+      }
+    },
+    "implied_strobe_rise_delay_us": {
+      "/camera_left/meta": 26.97824218248479,
+      "/camera_right/meta": 27.661842922637334
+    }
+  }
+}

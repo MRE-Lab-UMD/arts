@@ -1,0 +1,6 @@
+# Which monitor outputs the surgeon views go to on this console (docs/modules/console_display.md
+# has the console's monitor table). The GOOVIS is found by its EDID name; the tower monitor has
+# no telling EDID, so its output is named here. The GUI remembers the operator's last choice in
+# ~/.ros/arts_gui/settings.json, which wins over this file.
+goovis_edid_contains: GOOVIS
+tower_output: HDMI-0

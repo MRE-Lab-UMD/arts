@@ -1,0 +1,19 @@
+# Diagnostic overlay for the MICROROS mode. NOT a run mode — a debugger.
+#
+# Layer it THIRD, on top of the other two:
+#
+#   idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.microros;sdkconfig.defaults.microros_debug" build
+#
+# WHY IT EXISTS. sdkconfig.defaults.microros disables the console because log text interleaved
+# with XRCE-DDS framing corrupts the session, and that is correct for running — but it also
+# means a firmware that dies during micro-ROS init is completely mute, and "no bytes on the
+# wire" looks identical for a failed transport, a stack overflow and a hung session handshake.
+# This overlay re-enables the console so ESP_LOGE, panic backtraces and the boot log are
+# visible again.
+#
+# THE SESSION WILL NOT WORK IN THIS BUILD, by construction: the log output shares UART0 with
+# the transport and corrupts its framing. That is the trade — this build tells you WHERE the
+# firmware got to, not whether it can talk to the agent. Read the log, fix the cause, then
+# rebuild without this file.
+
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y

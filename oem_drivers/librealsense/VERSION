@@ -1,0 +1,5 @@
+# Intel RealSense SDK (librealsense) — pinned version
+# Open-source but belongs in oem_drivers/ because it drives a physical device.
+#
+# Archive: librealsense-2.51.1/
+VERSION=2.51.1

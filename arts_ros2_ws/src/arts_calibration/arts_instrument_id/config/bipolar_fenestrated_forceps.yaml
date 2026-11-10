@@ -1,0 +1,59 @@
+# Capture configuration — bipolar fenestrated forceps (demo instrument 2)
+#
+# Identical protocol to monopolar_curved_scissors.yaml; only the noted differences matter.
+# Protocol: docs/instrument_identification.md
+
+instrument: bipolar_fenestrated_forceps
+
+# Read off the physical instrument. See the note in monopolar_curved_scissors.yaml.
+part_number: ""
+
+joints: [roll, pitch, yaw, jaw]
+actuators: [disc_1, disc_2, disc_3, disc_4]
+
+homing:
+  approach_velocity: 0.087
+  current_threshold_ratio: 3.0
+  dwell_ms: 50
+  backoff: 0.035
+  warmup_cycles: 5
+  cycles_per_seating: 20
+  seatings: 3
+  zero_convention:
+    roll: midpoint
+    pitch: midpoint
+    yaw: midpoint
+    jaw: closed_just_touching
+
+coupling:
+  sweep_order: [jaw, yaw, pitch, roll]
+  samples_per_sweep: 200
+  bidirectional: true
+  random_poses: 150
+  roll_angles_for_constancy_check: [-1.57, 0.0, 1.57]
+
+tracking:
+  base_geometry: shaft_housing
+  tip_fiducial: single_sphere
+  tip_fiducial_offset_note: >
+    DIFFERS FROM THE SCISSORS. The fenestrated jaws are close to symmetric about the shaft
+    roll axis, so a sphere placed on the centreline makes shaft roll nearly unobservable —
+    the swept "circle" collapses to a point and the fit is meaningless. Mount the sphere
+    deliberately off-axis, on one jaw, as far lateral as the mount allows.
+
+tool_frame:
+  origin: distal_closed_jaw_tip
+  established_by: pivot_calibration
+  pivot_poses: 60
+
+functional_frames:
+  grasp_center:                   # centre of the fenestration, where tissue is actually held
+    offset_xyz: [null, null, null]
+  electrode_extent:               # bipolar active length across the jaw
+    offset_xyz: [null, null, null]
+    length: null
+
+mesh:
+  visual: deferred
+  collision: primitives
+  scale_reference_feature: shaft_diameter

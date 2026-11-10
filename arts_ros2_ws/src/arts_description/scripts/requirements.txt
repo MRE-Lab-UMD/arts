@@ -1,0 +1,5 @@
+# Pinned venv for import_pedestal_step.py and import_tool_step.py (machine-local tools, not ROS
+# dependencies).
+cadquery-ocp==7.7.2
+PyYAML==6.0.2
+numpy==1.26.4

@@ -1,0 +1,24 @@
+# ESU-TAP footswitch interposer firmware — pinned, NOT built or flashed by ARTS.
+#
+# Belongs in oem_drivers/ by the taxonomy in AGENTS.md: a physical component (the ESU-TAP board,
+# ESP32-DevKitC-32E) whose firmware ARTS takes as its designer ships it, the way the UR
+# controller or the Dynamixel servos are taken (decision 18, 2026-11-03 amendment). The board
+# is a separate Apache-2.0 project; its repository is not named in this tree (anonymity), and
+# the clone and its review live machine-locally in $ARTS_LOCAL/code_intake/esu_tap/.
+#
+# What the pin means: the firmware SOURCE at this commit is what a board must run. The board
+# reports its build over /esu/capabilities, and the esu node records it in /esu/info:
+#   protocol 2, firmware "3.2.0-bench", board "v2" (cut, coag, bipolar).
+# The firmware source (firmware/shared/) is byte-identical from the commit that set
+# 3.2.0-bench (2026-10-21) to this one; only READMEs changed. Its build pulls micro-ROS
+# (Humble client) through micro_ros_platformio at a pinned commit, which still fetches ROS
+# branches, so the built image is not reproducible bit for bit: flash with the designer's
+# recipe (esu.sh flash <rev> pedal) and record the board's capability reply.
+#
+# The cart's board: v2, unit 0003, read 2026-11-03 (boot id 15; the designer's v2 bench record
+# of 2026-10-22 logged boot ids 13-14 on the same build). The designer confirmed 2026-11-03 that
+# a board reporting 3.2.0-bench, v2, pedal_connected true runs this firmware; unit 0003 does.
+COMMIT=cbf2940e6d288888369dfee406bcd2a84afa2269
+FIRMWARE=3.2.0-bench
+PROTOCOL=2
+BOARD=v2

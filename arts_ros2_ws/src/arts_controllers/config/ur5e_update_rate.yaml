@@ -1,0 +1,20 @@
+# controller_manager rate for a UR5e tool arm.
+#
+# 500 Hz is the UR5e's RTDE rate, and this manager runs ONLY UR5e arms. The camera arm
+# (UR5 CB3, 125 Hz) lives in a separate controller_manager process: ur_robot_driver's
+# read() blocks on the RTDE stream, so mixing the two in one manager would drag the fast
+# arms down to the slow one. See AGENTS.md decision 1.
+#
+# ur_robot_driver ships an identical ur5e_update_rate.yaml and it is the default, so this
+# file changes nothing today. It exists because the rate is an ARTS decision that our
+# published jitter numbers are measured against, and it should not follow a vendor default
+# if that default ever moves.
+controller_manager:
+  ros__parameters:
+    update_rate: 500  # Hz
+    # The control loop thread on an ISOLATED core (decision 8: isolcpus=2,4,6,7 on the
+    # production workstation, where E2 measured 19 us). Without it the SCHED_FIFO thread
+    # floats over the housekeeping cores (core 3 on the first real-arm run, 2026-10-29).
+    # Host-specific: another machine needs its own isolated core here.
+    cpu_affinity: [4]
+    lock_memory: true

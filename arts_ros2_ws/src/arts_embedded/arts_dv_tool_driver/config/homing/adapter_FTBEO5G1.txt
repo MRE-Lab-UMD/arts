@@ -1,0 +1,20 @@
+# ARTS port (2026-11-04): the adapter designer's psm1_adapter.txt, values unchanged; named by
+# its converter's FTDI serial (FTBEO5G1), which the port line below also names.
+# PSM1 adapter: motor start positions (ticks), commanded before the tool goes on.
+# The drive pins must line up with the right holes on this adapter.
+# One line per motor: M<id> <position>.  Lines starting with # are ignored.
+# Edits take effect the next time the node starts (no rebuild needed).
+
+# Serial port of this adapter's USB converter (serial number FTBEO5G1). The by-id path follows the converter,
+# whatever USB socket it is plugged into. SWAPPED 4 Nov 2026 (~10:50): the adapters were switched between PSM1 and PSM2.
+port /dev/serial/by-id/usb-FTDI_USB__-__Serial_Converter_FTBEO5G1-if00-port0
+
+# Start positions SWAPPED with the other file too (~11:00): they belong to the adapter hardware/converter.
+M1 100
+M2 5000
+M3 2100
+M4 7844   # 2026-11-09: +2048 (180 deg) from 5796 (PI request; was 5796)
+M5 1800
+
+# Jaw step offsets live in the TOOL file (forceps.txt: psm1.m5_step_offset / psm1.m2_step_offset),
+# because they depend on the tool as well as the adapter.

@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>arts_description</name>
+  <version>0.1.0</version>
+  <description>URDF/SRDF for pedestal, arms, adapters, tools, trainer box; USD export hooks.</description>
+  <maintainer email="arts@anonymous.invalid">ARTS Maintainers</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>urdf</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <!-- ur_ros2_ws middle overlay, pinned in ur_ros2.repos. Visual meshes stay
+       there; this package wraps the ur_robot macro and vendors nothing. -->
+  <exec_depend>ur_description</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>ament_index_python</test_depend>
+  <test_depend>xacro</test_depend>
+  <test_depend>ur_description</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

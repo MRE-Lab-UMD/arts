@@ -1,0 +1,61 @@
+# CAD-nominal cart transforms (decision 12): measured corrections go in arts_calibration, not
+# here.
+#
+# SOURCE, 2026-11-01: the arm mounts are read from Vention's assembly of the stand (the public
+# design's v8 assembly STEP; design link withheld for review; the PI confirms the mounts are
+# unchanged from the built cart) by arts_description/scripts/import_pedestal_step.py, which reports where the
+# assembly places each UR5e base. The assembly is Y-up millimetres; the script writes it
+# z-up metres with the footprint centred and the floor at z = 0 (the "mesh frame"). world is
+# that frame turned +90 deg about z, so that world +x points toward the trainer box (the side
+# the arms reach over, mesh -y) and +y to the left (REP-103). Vention's geometry itself is not
+# committed (licence); each user imports it (the script's header says how).
+#
+# OPEN: (1) the assembly places a UR5e at all three mounts; the ECM is a UR5 CB3 on the same
+# flange pattern. SETTLED 2026-11-02 against the real arms (see mounts below): (2) base yaw —
+# all three mounts are turned 180 deg about their own z (CAD base = UR "base", not base_link); (3) psm_left
+# is the -y arm, not +y as first assumed.
+#
+# Units: metres and radians. Each mount pose is <arm>_mount relative to world; the UR
+# base_link sits at its mount.
+
+pedestal:
+  # Fallback box when no Vention mesh has been imported: the assembly's extent (with the arms
+  # removed), centred on the footprint, standing on z = 0. Size is xyz.
+  size: "1.129 1.037 1.675"
+  xyz: "0 0 0.8375"
+  rpy: "0 0 0"
+
+# Where the imported mesh (mesh frame, see above) sits in the pedestal frame (= world).
+pedestal_mesh:
+  xyz: "0 0 0"
+  rpy: "0 0 1.5707963"
+
+mounts:
+  # From the assembly (report: pedestal_import.yaml, ur5e_base_poses_in_mesh_frame), turned
+  # into world. The tool arms hang inverted, tilted 45 deg outward on Vention's gussets.
+  # Corrected 2026-11-02 against the real arms (read-only bringup, PI at the cart): psm_left
+  # (192.168.2.2) is the arm on world -y and psm_right the one on +y, and every arm's base
+  # is turned 180 deg about its own axis from the assembly's pose: the Vention/UR CAD base
+  # frame is UR's controller "base", which is base_link turned 180 deg about z.
+  psm_left:
+    xyz: "0.4336 -0.2634 1.2165"
+    rpy: "3.1415927 0.7853982 1.5707963"
+  psm_right:
+    xyz: "0.4336 0.2634 1.2165"
+    rpy: "3.1415927 -0.7853982 1.5707963"
+  ecm:
+    xyz: "0.4449 0.0 1.3787"
+    rpy: "0 0 -1.5707963"
+
+# The surgeon console is a separate cart; its pose relative to world is a DISPLAY placement
+# only (decision 18), never a measurement. The MTM bases sit on it.
+console:
+  xyz: "-1.50 0.00 0.00"
+  rpy: "0 0 0"
+mtm:
+  mtm_left:
+    xyz: "0.00 0.25 0.90"
+    rpy: "0 0 0"
+  mtm_right:
+    xyz: "0.00 -0.25 0.90"
+    rpy: "0 0 0"

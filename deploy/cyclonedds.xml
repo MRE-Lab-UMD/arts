@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CycloneDDS configuration for ARTS. ONE FILE, BOTH PATHS.
+
+  This lives in deploy/ rather than deploy/docker/ because decision 4 makes bare metal and
+  Docker equally first-class, and a benchmark comparison across them is meaningless if they
+  run different middleware settings. The container gets it COPYed to /etc/cyclonedds/ by
+  Dockerfile.base; the host gets the same file installed to the same path by
+  deploy/modules/dds.sh. Both then point CYCLONEDDS_URI at it.
+
+  Why CycloneDDS at all, rather than Jazzy's default Fast DDS: ARTS's dominant traffic is
+  large and periodic. A Blackfly S BFS-U3-63S4C frame is about 6 MB, two of them arrive
+  40 times a second once the stereo laparoscope is running, and point-cloud topics come
+  later. Cyclone's simpler shared-memory path and its behaviour under large-sample
+  fragmentation are the reason for the departure.
+
+  SETTINGS HERE ARE PART OF THE MEASURED BASELINE. The committed FLIR baseline
+  (docs/benchmarks/flir_bfs-u3-63s4c_20260810.*) was taken with exactly these values, so
+  changing one invalidates the comparison until that benchmark is re-run. Treat an edit the
+  way the dependency policy treats a version bump: change it, re-run the module benchmark,
+  and commit the new baseline next to the old one.
+
+  Companion host setting: net.core.rmem_max must be at least SocketReceiveBufferSize or the
+  kernel silently caps the socket and Cyclone does not complain. deploy/modules/dds.sh sets
+  it to 25 MiB.
+-->
+<CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+  <Domain id="any">
+    <General>
+      <!-- Bind to all interfaces; override with an Interfaces/NetworkInterface entry for
+           multi-NIC setups (e.g. a dedicated GigE camera NIC). -->
+      <AllowMulticast>default</AllowMulticast>
+    </General>
+
+    <Discovery>
+      <!-- Participant index range per host. Cyclone's default (9: ten processes, one ROS 2
+      participant each) was exhausted on 2026-11-05 with the full cart up at once (three arm
+      drivers, two instrument drives, cameras + display, teleop, camera control, head
+      sensor): new processes failed with "Failed to find a free participant index". A
+      discovery setting only (which unicast ports a participant may take), no transport
+      change, so the committed FLIR baselines still stand. -->
+      <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
+    </Discovery>
+
+    <Internal>
+      <!-- Large receive buffer for image topics. Capped by net.core.rmem_max. -->
+      <SocketReceiveBufferSize min="10MB"/>
+      <!-- Nack suppression delay kept short for low-latency control topics. -->
+      <NackDelay>50 ms</NackDelay>
+    </Internal>
+
+    <Tracing>
+      <Verbosity>warning</Verbosity>
+      <!-- Default is a file named cyclonedds.log in the process's WORKING DIRECTORY, so
+      every native run litters wherever it was launched from - including the repo root,
+      which is how this was noticed. stderr also puts warnings where the launch log and
+      journald can see them instead of in a file nobody opens. Destination only: this
+      changes no transport behaviour, so the committed FLIR baselines still stand. -->
+      <OutputFile>stderr</OutputFile>
+    </Tracing>
+  </Domain>
+</CycloneDDS>

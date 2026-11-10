@@ -1,0 +1,12 @@
+# Haply Hub (device manager + Inverse Service) — pinned version (closed binary)
+# Public download, no account: https://develop.haply.co/releases/manager/1.5.0
+# Archive mirrored to: $ARTS_LOCAL/oem_drivers/haply-<VERSION>/ by deploy/modules/haply.sh
+#
+# 1.5.0 adopted 2026-10-29, before the first Haply benchmark (decision 9 amendment). The .deb
+# ships the Hub GUI, the service as libhaply-service-shared.so, and a udev rule. It replaces
+# the prior system's separate inverse-service 3.4.16 .deb + device-manager 0.24.0 AppImage.
+# Device firmware (Inverse3 7.10.1, VerseGrip) is device state flashed from the Hub: it is
+# recorded in each benchmark report, not pinned here.
+VERSION=1.5.0
+URL=https://cdn.haply.co/r/DeviceManager/1.5.0/haply-device-manager_1.5.0_amd64.deb
+SHA256=32884fda44ded82cf825ff6deed232a3c46193e093ff9af8ae6da8be61e79e52

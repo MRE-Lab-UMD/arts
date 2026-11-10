@@ -1,0 +1,66 @@
+# UR ROS 2 middle overlay — pin tags or FULL COMMIT HASHES only. Never branches.
+# Fetched/built into: $ARTS_LOCAL/middle_overlay_ros2_wss/ur_ros2_ws/
+#
+# The driver versions its distro branches separately: the 2.x tags live on
+# `humble`, the 3.x tags on `jazzy`. The earlier 2.13.2 pin was a Humble tag and
+# is NOT reachable from the jazzy branch, so the Jazzy migration required moving
+# series, not just bumping a number.
+#
+# Pinned until 2026-10-29 (see BUMPED below): 3.8.0 — newest tag merged into origin/jazzy as of 2026-08-10
+#         commit 409548c71b126652e4012a5f9bcfb0f914758bcc (2026-04-09)
+# Description ships as a dependency of the driver — no separate pin needed.
+# VERIFIED 2026-08-10: builds clean bare-metal against /opt/ros/jazzy in 3m34s.
+# The repo's 6 packages minus ur_moveit_config, which build.sh excludes on purpose
+# (it drags in the MoveIt stack and a conflicting Ruckig — rationale in build.sh).
+#
+# ur_description USED to arrive from apt (ros-jazzy-ur-description 3.5.1) as a rosdep
+# dependency of the driver, which left it unpinned. It is now pinned here instead, for
+# two reasons beyond the obvious one:
+#   1. An apt `=version` pin does not actually survive. packages.ros.org is a rolling
+#      repository, not an archive — once a newer build lands, the exact version string
+#      stops being installable and the pin silently becomes a build failure on a fresh
+#      machine. A git tag does not rot that way.
+#   2. It defines the link geometry and joint limits that RCM deviation, the collision
+#      QP, and every calibration result are computed against. A frame shifted by a
+#      millimetre would change published numbers with no error message anywhere.
+# Tag 3.5.1 is exactly the source of the apt package that was in use
+# (3.5.1-1noble.20260615.175716), so this pin changes nothing about what gets built.
+#
+# LICENSING, because it is not what it looks like: this package is DUAL-licensed. The
+# xacro, config and CMake are BSD-3-Clause, but the meshes are "Graphical Documentation"
+# under Universal Robots A/S' own terms. Those terms permit our use (simulation,
+# visualization, path planning and collision avoidance, non-commercial research) and
+# permit redistribution provided the T&Cs travel with the files. But §2.2 says any
+# DERIVATIVE work based on the meshes belongs to Universal Robots — so a decimated or
+# convex-hulled UR mesh would not be ours to license, and §5.2/§6 let UR change or
+# terminate the terms. ARTS therefore authors its own collision primitives from
+# published dimensions rather than deriving them from these meshes, and pulls the
+# visual meshes at build time from this pinned checkout rather than vendoring copies.
+#
+# BUMPED 2026-10-29, 3.8.0 → 3.10.0, before any UR benchmark existed: 3.8.0's
+# ur_calibration never connects (it skips Pipeline::init() and loops on "Stream is invalid"
+# against a reachable arm; fixed upstream in 3.9.0, 0089621), and 3.9.0 still writes the
+# calibration's link rotations as intrinsic X-Y-Z angles where the URDF reads fixed-axis
+# rpy (fixed in 3.10.0, 81df755), so a 3.9.0 extraction would describe a different arm.
+# 3.10.0 also adds `blocking_read` (default false, i.e. unchanged from 3.8.0's
+# non_blocking_read:=true); the E5 run must state which it used.
+#
+# ur_client_library used to come from apt (ros-jazzy-ur-client-library, rolling, 2.15.2 on
+# 2026-10-29), i.e. unpinned under the code that talks to the arm. It is pinned here at the
+# same version; the overlay copy shadows the apt one.
+#
+# NOT yet benchmarked on ARTS: this pin changed with the Jazzy migration and
+# supersedes numbers taken against 2.13.2.
+repositories:
+  Universal_Robots_ROS2_Driver:
+    type: git
+    url: https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver.git
+    version: 67578e0e8fe3f8366e046f5c96b8ce6675c4e00d   # tag 3.10.0 (2026-10-21)
+  Universal_Robots_Client_Library:
+    type: git
+    url: https://github.com/UniversalRobots/Universal_Robots_Client_Library.git
+    version: 7747b683a68ca5f23d33fde4405e24e55d390b85   # tag 2.15.2
+  Universal_Robots_ROS2_Description:
+    type: git
+    url: https://github.com/UniversalRobots/Universal_Robots_ROS2_Description.git
+    version: 3.5.1   # commit 710505166d0399b506838d55663f634880d235fe

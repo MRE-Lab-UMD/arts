@@ -1,0 +1,92 @@
+# Capture configuration — monopolar curved scissors (demo instrument 1)
+#
+# This file holds the SETUP for identification, not its results. Results land in
+# arts_description/config/instruments/ via report.write_instrument_yaml().
+# Protocol: docs/instrument_identification.md
+
+instrument: monopolar_curved_scissors
+
+# Read this off the physical instrument before measuring it. Left blank on purpose:
+# report.write_instrument_yaml() refuses to write without it, because 400xxx / 420xxx /
+# 470xxx are different generations and an unlabelled parameter set cannot be compared
+# against anything.
+part_number: ""
+
+joints: [roll, pitch, yaw, jaw]
+actuators: [disc_1, disc_2, disc_3, disc_4]
+
+# --- Stage A: homing -------------------------------------------------------------------
+homing:
+  approach_velocity: 0.087        # rad/s at the disc (~5 deg/s). One value for every disc
+                                  # and every instrument; detection lags the true stop by an
+                                  # amount that grows with approach speed.
+  current_threshold_ratio: 3.0    # multiple of the measured free-running current for THIS
+                                  # disc, not an absolute mA figure — free current differs
+                                  # per disc and rises with cable tension.
+  dwell_ms: 50                    # threshold must be sustained this long, so a transient
+                                  # does not register as a hard stop.
+  backoff: 0.035                  # rad, retreat after detection
+  warmup_cycles: 5                # Dynamixel current drifts as the winding warms
+  cycles_per_seating: 20
+  seatings: 3                     # re-seat the instrument between groups; re-seat
+                                  # repeatability is the number that matters operationally
+
+  # Zero convention per joint. Midpoint is right for roll/pitch/yaw and WRONG for the jaw:
+  # both jaw stops are meaningful (closed-and-loaded, full-open) and their midpoint is a
+  # physically meaningless half-open pose.
+  zero_convention:
+    roll: midpoint
+    pitch: midpoint
+    yaw: midpoint
+    jaw: closed_just_touching     # detect the current knee, not the current peak
+
+# --- Stage B: coupling -----------------------------------------------------------------
+coupling:
+  # Work distal to proximal so each circle fit only sees joints already characterised.
+  sweep_order: [jaw, yaw, pitch, roll]
+  samples_per_sweep: 200
+  bidirectional: true             # required; the gap between branches is the backlash
+  random_poses: 150               # tests whether superposition — i.e. a constant matrix —
+                                  # is the right model at all
+  roll_angles_for_constancy_check: [-1.57, 0.0, 1.57]
+                                  # cable-driven wrists often show roll-dependent coupling
+                                  # because rolling the shaft winds the pitch/yaw cables
+
+# --- Tracking rig ----------------------------------------------------------------------
+tracking:
+  base_geometry: shaft_housing    # multi-sphere fusionTrack geometry, mounted proximally
+                                  # where there is room; gives full 6-DOF base pose
+  tip_fiducial: single_sphere     # ONE reflective sphere on a jaw blade. The fusionTrack
+                                  # reports individual fiducial positions, so a point is
+                                  # enough for circle-point analysis — no clevis marker.
+  tip_fiducial_offset_note: >
+    The scissors tip is curved and therefore already off the shaft roll axis, so shaft roll
+    is observable without deliberately offsetting the sphere. Symmetric instruments need the
+    sphere mounted off-axis or roll drops out of the fit.
+
+# --- Tool frame ------------------------------------------------------------------------
+# Universal ARTS convention, identical for every instrument: origin at the distal-most point
+# of the closed jaws at jaw zero; z distal along the closed-jaw centreline; x along the jaw
+# pivot axis; y right-handed. Chosen because it is exactly what pivot calibration measures.
+tool_frame:
+  origin: distal_closed_jaw_tip
+  established_by: pivot_calibration
+  pivot_poses: 60
+
+# Functional points that are NOT the tool frame, published as fixed offsets from it so a
+# task planner can request one by name. Filled in from Stage C measurements.
+functional_frames:
+  cut_point:                      # where tissue actually parts, mid-blade
+    offset_xyz: [null, null, null]
+  electrode_extent:               # active monopolar length along the blade
+    offset_xyz: [null, null, null]
+    length: null
+
+# --- Stage D: meshes -------------------------------------------------------------------
+mesh:
+  # Deferred until after the 5 Oct funder demo — the demo needs accurate teleoperation, not
+  # a pretty tip. Primitives only until then.
+  visual: deferred
+  collision: primitives
+  scale_reference_feature: shaft_diameter   # photogrammetry has no absolute scale; this one
+                                            # caliper number scales the entire mesh

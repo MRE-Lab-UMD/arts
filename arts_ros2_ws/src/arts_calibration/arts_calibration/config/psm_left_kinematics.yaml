@@ -1,0 +1,49 @@
+# Factory kinematic calibration of psm_left (ur5e, 192.168.2.2), read from the arm's controller
+# 2026-10-29 by ur_calibration (driver 3.10.0, URDF rpy convention). Measured, not nominal
+# (decision 12). Re-extract after any arm service or controller-box swap; how and why:
+# docs/modules/ur_arms.md. The driver logs this file's hash at start-up and reports
+# an error if the arm's own calibration differs.
+kinematics:
+  shoulder:
+    x: 0
+    y: 0
+    z: 0.16241210940226894
+    roll: 3.1415926535897931
+    pitch: -3.1415926535897931
+    yaw: 3.1415925889346394
+  upper_arm:
+    x: 0.00022978600508463597
+    y: 0
+    z: 0
+    roll: 1.5692284087813511
+    pitch: -4.5748865805990539e-06
+    yaw: 7.1730529576235938e-09
+  forearm:
+    x: -0.42551403946494909
+    y: 0
+    z: 0
+    roll: 3.1397142764638479
+    pitch: 3.1395483823206276
+    yaw: 3.14159046918419
+  wrist_1:
+    x: -0.39264909346504961
+    y: -0.00087440413506232044
+    z: 0.1334833363283798
+    roll: 0.0065505533520428929
+    pitch: -0.0016642040347967868
+    yaw: 3.1562770319806515e-06
+  wrist_2:
+    x: 0.00017586824266408005
+    y: -0.099667407939579566
+    z: 0.0002464461263373091
+    roll: 1.5683236466162533
+    pitch: -3.0414542784769308e-06
+    yaw: 7.5205590359025073e-09
+  wrist_3:
+    x: 4.2379690778397084e-05
+    y: 0.099446033539750206
+    z: 0.00015236632159082509
+    roll: -1.5692641771762379
+    pitch: 3.5364589788079238e-07
+    yaw: 5.4183885156409928e-10
+  hash: calib_7601068573401164853

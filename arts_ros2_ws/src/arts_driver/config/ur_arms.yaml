@@ -1,0 +1,57 @@
+# The three arms on the patient-cart network, keyed by ROLE (decision 18): psm_left and
+# psm_right are the UR5e tool arms (500 Hz, one controller manager each), ecm is the UR5 CB3
+# camera arm (125 Hz). Read by deploy/modules/ur.sh (host setup, preflight) and by
+# arts_driver/launch/ur_arm.launch.py, which takes the IP, ports and model from here.
+#
+# Each arm's External Control URCap points at host_ip and its own script_sender_port, so
+# only ONE host can drive the arms at a time (the switch is shared with collaborator A's
+# PC; whichever PC is plugged in must hold host_ip). The URCap sets only that port; the
+# other three are host-side and chosen by ARTS, +10 per arm, so the drivers never collide.
+#
+# polyscope is what each pendant reported on 2026-10-29. ur_robot_driver 3.8.0 needs
+# e-Series >= 5.9.4 and CB3 >= 3.14.3; ur.sh preflight re-reads it over the dashboard.
+#
+# cpu_core: the isolated core (decision 8: isolcpus=2,4,6,7 on the production workstation)
+# that arm's controller-manager loop is pinned to. One core per arm so the three loops never
+# share one. Host-specific: another machine needs its own isolated cores here.
+#
+# tip: the tool-tip preset (config/tool_tips.yaml) arts_bringup starts each arm with. Both
+# PSMs carry the da Vinci X adapter; the ECM servos the stereo laparoscope's tip (since
+# 2026-11-06, for its RCM; the flange before).
+host_ip: 192.168.2.105
+netmask_bits: 24
+arms:
+  psm_right:
+    model: ur5e
+    ip: 192.168.2.1
+    polyscope: 5.25.1
+    reverse_port: 50001
+    script_sender_port: 50002
+    trajectory_port: 50003
+    script_command_port: 50004
+    cpu_core: 6
+    tip: da_vinci_x_wrist
+  psm_left:
+    model: ur5e
+    ip: 192.168.2.2
+    polyscope: 5.25.1
+    reverse_port: 50011
+    script_sender_port: 50012
+    trajectory_port: 50013
+    script_command_port: 50014
+    cpu_core: 4
+    tip: da_vinci_x_wrist
+  ecm:
+    model: ur5
+    ip: 192.168.2.51
+    polyscope: 3.15.8
+    reverse_port: 50021
+    script_sender_port: 50022
+    trajectory_port: 50023
+    script_command_port: 50024
+    cpu_core: 7
+    tip: stereo_laparoscope
+    # servoj: under the RCM, speedj (the controller restarting each cycle from the MEASURED
+    # joints) rang at ~9.5 Hz, ~0.4 mm at the scope tip, on this CB3's 125 Hz loop; smooth
+    # without the RCM; not on mock (no delay) (2026-11-07).
+    command_interface: position

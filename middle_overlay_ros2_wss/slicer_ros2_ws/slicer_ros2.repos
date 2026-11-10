@@ -1,0 +1,13 @@
+# SlicerROS2 middle overlay.
+# Pin tags or FULL COMMIT HASHES only. Never branches.
+# Fetched/built into: $ARTS_LOCAL/middle_overlay_ros2_wss/slicer_ros2_ws/
+# Requires Slicer Superbuild at $ARTS_LOCAL/open_source_software/Slicer-Superbuild-Release/
+#
+# The repo is rosmed/slicer_ros2_module (not Slicer/SlicerROS2, which does not
+# exist). Prior system used commit 7d8ab6e0 (devel, 2024-05-30). Pinned to v1.2, the
+# latest tagged release.
+repositories:
+  slicer_ros2_module:
+    type: git
+    url: https://github.com/rosmed/slicer_ros2_module.git
+    version: v1.2

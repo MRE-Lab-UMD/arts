@@ -1,0 +1,8 @@
+# 3D Slicer — pinned superbuild
+# https://github.com/Slicer/Slicer
+#
+# Pinned to v5.8.1, latest stable release. Built as a superbuild into
+# $ARTS_LOCAL/open_source_software/Slicer-Superbuild-Release/.
+# The prior system used a locally built superbuild (same pattern).
+GIT_URL=https://github.com/Slicer/Slicer.git
+GIT_REF=v5.8.1

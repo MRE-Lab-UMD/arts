@@ -1,0 +1,98 @@
+# Dockerfile.arts — the full ARTS chain in one image: control libraries + ur_ros2_ws +
+# oem_ros2_ws + arts_ros2_ws, on top of arts-flir:jazzy (base + Spinnaker + flir_ros2_ws).
+#
+# Build:  ./deploy/docker/build_arts.sh          (from repo root; needs arts-flir:jazzy)
+# Run:    docker compose -f deploy/docker/compose.yaml run --rm arts
+#
+# WHY ONE IMAGE AND NOT arts-ur / arts-haply / arts-footswitch. Every one of those nodes is
+# a package of arts_ros2_ws (ur_arm.launch.py, haply_bridge, footswitch.py, the micro-ROS
+# agent launch), and arts_ros2_ws is ONE colcon workspace built against the union of the
+# middle overlays — arts_driver exec-depends on ur_robot_driver AND spinnaker_camera_driver,
+# arts_camera_sync on micro_ros_agent. Per-module images would each have to rebuild that same
+# workspace against a different subset of underlays, i.e. N differently-built copies of the
+# same code, which is exactly the drift decision 4 forbids. So the modules are compose
+# SERVICES of this one image (compose.yaml), each with its own command, devices and RT
+# rights. The FLIR image stays separate because it is a module pilot with a committed
+# benchmark digest; this image is built FROM it so the chain matches bare metal exactly:
+#   /opt/ros/jazzy → ur_ros2_ws, flir_ros2_ws, oem_ros2_ws → coal/pinocchio/proxsuite
+#   → arts_ros2_ws
+#
+# OEM NOTE (decision 4). The only OEM content is Spinnaker, inherited from arts-flir:jazzy,
+# which is built locally from the user's own mirrored debs and never pushed. Haply's Inverse
+# Service is a closed HOST binary (decision 9); the bridge in this image reaches it over its
+# WebSocket on localhost, which works because every service uses host networking. Nothing
+# Haply is installed here.
+#
+# Every step RUNs the same deploy/modules/*.sh function the bare-metal installer runs
+# (arts_install.sh: build_control_libs → arts.sh, build_middle_overlay →
+# overlay_build_dispatch, build_arts_ws → arts.sh). Files are staged by build_arts.sh.
+#
+ARG ARTS_BASE_IMAGE=arts-flir:jazzy
+FROM ${ARTS_BASE_IMAGE}
+
+SHELL ["/bin/bash", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
+
+# One machine-local tree, laid out exactly like $ARTS_LOCAL on a host, so arts_ws_build finds
+# the middle overlays and the control-library prefixes at the paths it already looks in.
+ENV ARTS_LOCAL=/opt/arts_local
+ENV ARTS_ROOT=/opt/arts
+
+# ── Stage 1: pinned build dependencies (arts_build_deps) ──
+COPY .arts-staging/deploy/modules/_common.sh /opt/arts/deploy/modules/_common.sh
+COPY .arts-staging/deploy/modules/arts.sh    /opt/arts/deploy/modules/arts.sh
+RUN apt-get update \
+    && . /opt/arts/deploy/modules/arts.sh \
+    && arts_build_deps \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Stage 2: coal → pinocchio → proxsuite (arts_control_libs_build) ──
+# The same build.sh + VERSION files, so the same tags and the same CMake flags.
+COPY .arts-staging/open_source_software/ /opt/arts/open_source_software/
+RUN . /opt/arts/deploy/modules/arts.sh \
+    && arts_control_libs_build
+
+# ── Stage 3: middle overlays (overlay_build_dispatch, the installer's entry point) ──
+# ur_ros2_ws → ur_overlay_build (ur_moveit_config excluded, decision 11).
+COPY .arts-staging/deploy/modules/ur.sh /opt/arts/deploy/modules/ur.sh
+COPY .arts-staging/middle_overlay_ros2_wss/ur_ros2_ws/ \
+     /opt/arts/middle_overlay_ros2_wss/ur_ros2_ws/
+RUN . /opt/arts/deploy/modules/_common.sh \
+    && overlay_build_dispatch ur_ros2_ws \
+    && rm -rf /var/lib/apt/lists/*
+
+# oem_ros2_ws (micro-ROS agent for the sync box) → its build.sh → overlay_build_generic.
+COPY .arts-staging/middle_overlay_ros2_wss/oem_ros2_ws/ \
+     /opt/arts/middle_overlay_ros2_wss/oem_ros2_ws/
+RUN . /opt/arts/deploy/modules/_common.sh \
+    && overlay_build_dispatch oem_ros2_ws \
+    && rm -rf /var/lib/apt/lists/*
+
+# flir_ros2_ws was built by Dockerfile.flir at /opt/flir_ros2_ws (its benchmarked layout).
+# Point the machine-local tree at it so arts_ws_build sources it like any other overlay.
+RUN ln -s /opt/flir_ros2_ws /opt/arts_local/middle_overlay_ros2_wss/flir_ros2_ws
+
+# ── Stage 4: runtime dependency owned by a module (haply_host_deps) ──
+# python3-websocket=1.7.0-1 for arts_driver/haply_bridge. Run through haply.sh so the pin has
+# one home; rosdep would otherwise install the current candidate for arts_driver's key.
+COPY .arts-staging/deploy/modules/haply.sh /opt/arts/deploy/modules/haply.sh
+RUN apt-get update \
+    && . /opt/arts/deploy/modules/haply.sh \
+    && haply_host_deps \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Stage 5: arts_ros2_ws (arts_ws_build) ──
+# Last, so a source change rebuilds only this layer. The staged tree is the working tree's
+# tracked + unignored files (firmware build trees and fetched ESP-IDF components excluded).
+COPY .arts-staging/arts_ros2_ws/ /opt/arts/arts_ros2_ws/
+RUN apt-get update \
+    && . /opt/arts/deploy/modules/arts.sh \
+    && arts_ws_build \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Entrypoint: source arts_ros2_ws ONLY (it chains to the middle overlays and Jazzy) ──
+# The base entrypoint sources /opt/ros/jazzy first, which breaks the sourcing rule.
+RUN printf '#!/bin/bash\nset -e\nsource /opt/arts/arts_ros2_ws/install/setup.bash\nexec "$@"\n' \
+    > /ros_entrypoint.sh && chmod +x /ros_entrypoint.sh
+WORKDIR /opt/arts/arts_ros2_ws
+CMD ["bash"]

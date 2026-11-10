@@ -1,0 +1,29 @@
+# Default joint positions for the cart viewer (joint_state_publisher zeros).
+#
+# Same singularity-safe pose as arts_driver/config/ur5e_initial_positions.yaml,
+# applied to all three arms. ur_description's default (elbow = 0) is the elbow
+# singularity; starting there makes the model look fully extended and is a
+# bad pose to judge reach from. See that file for the full reasoning.
+#
+# Prefixes match urdf/arts.urdf.xacro.
+
+psm_left_shoulder_pan_joint: 0.0
+psm_left_shoulder_lift_joint: -1.5708
+psm_left_elbow_joint: 1.5708
+psm_left_wrist_1_joint: -1.5708
+psm_left_wrist_2_joint: -1.5708
+psm_left_wrist_3_joint: 0.0
+
+psm_right_shoulder_pan_joint: 0.0
+psm_right_shoulder_lift_joint: -1.5708
+psm_right_elbow_joint: 1.5708
+psm_right_wrist_1_joint: -1.5708
+psm_right_wrist_2_joint: -1.5708
+psm_right_wrist_3_joint: 0.0
+
+ecm_shoulder_pan_joint: 0.0
+ecm_shoulder_lift_joint: -1.5708
+ecm_elbow_joint: 1.5708
+ecm_wrist_1_joint: -1.5708
+ecm_wrist_2_joint: -1.5708
+ecm_wrist_3_joint: 0.0

@@ -1,0 +1,18 @@
+# FLIR Spinnaker SDK — pinned version
+# Download (free Teledyne account): DOWNLOAD_URL below. Teledyne moved the downloads off
+# flir.com in 2026; the old support-center link is a 404 (reported by an outside tester,
+# 2026-11-09). Older releases are under the page's "All Versions" list when Teledyne still
+# offers them; if 4.2.0.88 is gone, see ARTS_SPINNAKER_VERSION below.
+# Archive mirrored to: $ARTS_LOCAL/oem_drivers/spinnaker-<VERSION>/ (debs anywhere below it)
+#
+# Confirmed installed on dev PC via dpkg (2026-08-05). Same version as the prior system.
+# flir_camera_driver 3.0.5 supports SDK >= 4.x.
+#
+# ARTS_SPINNAKER_VERSION=<x.y.z.w> in the environment installs a different SDK INSTEAD of the
+# pin (e.g. a 4.4.0 build for Ubuntu 24.04, the only one some accounts are offered). It is an
+# explicit, loudly reported deviation, not a pin bump: every ARTS benchmark used 4.2.0.88, and
+# a bump is a benchmarked act (AGENTS.md "Dependency pinning"). Cameras are not needed for
+# the mock or simulated robot at all: ARTS_ENABLE_FLIR=0 ./arts_install.sh skips this SDK.
+PINNED_VERSION=4.2.0.88
+VERSION="${ARTS_SPINNAKER_VERSION:-$PINNED_VERSION}"
+DOWNLOAD_URL=https://www.teledynevisionsolutions.com/products/spinnaker-sdk/

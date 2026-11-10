@@ -1,0 +1,35 @@
+# da Vinci X/Xi Permanent Cautery Hook, ref 470183, 8 mm: bring-up kinematics for arts_dv_tool_driver.
+#
+# Provenance: the ARTS team. Bring-up values: NOT yet measured on this instrument; every
+# geometric value is to be measured per instrument (docs/instrument_identification.md, rule).
+# The bring-up values are those of the cautery spatula (same no-jaw family); none have been
+# checked on the hook yet.
+#
+# Coupling (disc angles from joint angles, radians, as on the adapter's servos):
+#   [disc_1, disc_2, disc_4, disc_5] = coupling * [roll, wrist_pitch, wrist_yaw, jaw]
+# where wrist_yaw is the common bend of both jaws and jaw is their opening (left - right).
+# Disc 3 is not driven by this instrument. Disc zero = disc_drive's set_zero after engaging by
+# hand: wrist straight, jaw just closed (a visual zero, docs/modules/dv_tool_driver.md).
+name: Permanent Cautery Hook
+ref: "470183"
+diameter_mm: 8
+joints: [roll, wrist_pitch, wrist_yaw, jaw]
+jawed: false
+jaw_gain: 10.0   # 1/s: jaw velocity = jaw_gain x (jaw target - jaw), A's grasper gain
+discs: [disc_1, disc_2, disc_4, disc_5]
+coupling:
+    - [1.07, 0, 0, 0]
+    - [0, 0.572366, -1.1, 0.55]
+    - [0, 0.94, 0, 0]
+    - [0, -0.572366, 1.1, 0.55]
+limits:   # radians
+  roll:        {min: -4.7124, max: 4.7124}   # +-270 deg
+  wrist_pitch: {min: -1.2217, max: 1.2217}   # +-70 deg
+  wrist_yaw:   {min: -1.2217, max: 1.2217}   # +-70 deg
+  # no jaw: the jaw column of the coupling is kept only so the matrix stays invertible;
+  # the jaw is held at 0.
+geometry:   # metres; null = not measured yet
+  shaft_line_from_flange: 0.0884   # the adapter CAD (tool_tips.yaml), not the instrument
+  pitch_axis_along_shaft: null     # bring-up uses 0.600
+  pitch_to_yaw: null               # bring-up uses 0.009
+  jaw_length: null

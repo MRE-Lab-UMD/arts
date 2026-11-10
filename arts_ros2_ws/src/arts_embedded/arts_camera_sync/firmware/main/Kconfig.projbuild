@@ -1,0 +1,89 @@
+menu "ARTS camera sync"
+
+    choice ARTS_SYNC_RUN_MODE
+        prompt "Run mode"
+        default ARTS_SYNC_MODE_SELFTEST
+        help
+            Which of the Stage 5 bring-up rungs this build serves. BLINK and SELFTEST keep
+            the UART console and do not start micro-ROS; MICROROS takes UART0 for the
+            micro-ROS transport, which means the console must be disabled and printf
+            debugging is no longer available.
+
+        config ARTS_SYNC_MODE_BLINK
+            bool "blink (Stage 5a) — slow visible pulse on an LED, software timed"
+        config ARTS_SYNC_MODE_SELFTEST
+            bool "selftest (Stage 5b/5d) — real trigger + capture, results printed to console"
+        config ARTS_SYNC_MODE_MICROROS
+            bool "micro-ROS (Stage 5e) — publish CameraSyncPulse, console disabled"
+    endchoice
+
+    config ARTS_SYNC_CAMERA_COUNT
+        int "Number of camera channels"
+        range 1 3
+        default 2
+        help
+            Capture channels consumed = this value plus one if the trigger loopback is
+            enabled, and MCPWM group 0 has only three. Two cameras plus the loopback is the
+            current build; a third camera requires dropping the loopback.
+
+    config ARTS_SYNC_TRIGGER_LOOPBACK
+        bool "Capture the trigger edge via loopback"
+        default y
+        help
+            Wire the trigger output back into the loopback pin so the trigger edge is
+            timestamped on the SAME counter as the exposure strobes. This is what makes the
+            absolute trigger-to-exposure delay meaningful. Without it, camera 0 becomes the
+            reference and only inter-camera skew is measurable — which is still the metric
+            the paper reports, so dropping it to free a channel for a third camera is an
+            acceptable trade.
+
+    config ARTS_SYNC_RATE_HZ
+        int "Trigger rate (Hz)"
+        range 10 200
+        default 30
+        help
+            Below 10 Hz the MCPWM period register (16-bit at 1 MHz) overflows; the BLINK
+            mode uses software timing precisely so it can go slower and stay visible.
+            30 Hz is the stereo default: two 3072x2048 Bayer8 streams at 40 Hz exceed the
+            usable bandwidth of one 5 Gbps USB3 link.
+
+    config ARTS_SYNC_PULSE_WIDTH_US
+        int "Trigger pulse width (us)"
+        range 20 10000
+        default 100
+        help
+            Must comfortably exceed the opto-isolated input's 18 us low-to-high
+            propagation delay. 100 us is ~0.3 % duty at 30 Hz.
+
+    config ARTS_SYNC_STROBE_ACTIVE_LOW
+        bool "ExposureActive strobe is active low"
+        default n
+        help
+            Which edge of the strobe marks the START of exposure. Both edges are captured
+            either way, so this decides labelling only.
+
+            Default is n, i.e. active HIGH, and that is a MEASURED result rather than a
+            derivation. On BFS-U3-63S4C (firmware 1801.0.9.0) the opto-coupled Line 1 sits
+            LOW against the external 1 kohm pull-up and rises while exposing. That is the
+            opposite of what "open-collector output" leads you to expect, and this option
+            defaulted to y on the strength of that expectation until rung 5d contradicted
+            it on 2026-08-18: with a 5000 us exposure and a 379 us TriggerDelay the falling
+            edge landed at 5687 us, which is the end of the exposure, not the start.
+
+            The setting is now self-checking. Read exposure_width_ticks in SELFTEST: it
+            should equal the configured exposure time. If it instead comes out as the
+            trigger period minus the exposure, this option is set the wrong way round and
+            every trigger->exposure figure is really a trigger->exposure-END figure.
+
+    config ARTS_SYNC_EDGE_DIAG
+        bool "Print every anomalous strobe record (SELFTEST only)"
+        depends on ARTS_SYNC_MODE_SELFTEST
+        default n
+        help
+            Logs, for any pulse with a missing start, an edge count other than two, or an
+            edge whose reported type disagrees with the pin level, every capture event as
+            the ISR saw it: reported edge, pin level, ticks from the trigger. This is the
+            instrument that found the mislabelled-edge defect on 2026-10-28; re-run it after
+            any ESP-IDF bump or board change.
+
+endmenu

@@ -1,0 +1,9 @@
+# coal — collision detection library
+# https://github.com/coal-library/coal
+# Pin to a FULL COMMIT HASH, never a branch.
+#
+# Prior system used commit 4ddf1e7e (devel, v3.0.1+12 commits). Pinned to v3.0.4
+# (2026-06-29), latest stable release. Fixes Boost component declaration in
+# coalConfig.cmake.
+GIT_URL=https://github.com/coal-library/coal.git
+GIT_REF=v3.0.4

@@ -1,0 +1,98 @@
+# ARTS port (2026-11-04): the adapter designer's file, values unchanged. The per-adapter keys were
+# psm1.* / psm2.* in the original; they are now the adapter's FTDI serial (psm1 = FTBEO5G1,
+# psm2 = FTBEQBRA, from the designer's own adapter files), because the values follow the adapter
+# hardware, not the arm it sits on. "psm1"/"psm2" in the comments below are the designer's names.
+# FORCEPS: tool-specific homing values (forceps_01 calibration, 2-4 Nov 2026).
+# Loaded by tool_homing with tool:=forceps (the GUI's "Forceps" button passes this).
+# Every key below is REQUIRED: a missing or unknown key stops the node before any motor moves, so a new
+# tool file (scissors.txt, ...) must set every value on purpose instead of silently inheriting forceps values.
+# Format: <key> <value>   ('#' starts a comment). Ticks: 4096 per motor turn. Currents: raw Dynamixel units.
+# Edits take effect the next time the node starts (no rebuild needed).
+# A ROS parameter given on the command line (e.g. -p jaw.max_close:=1500) still overrides a value here.
+
+homing.jaw_mode contact          # jaw sweep + close-onto-contact plan ("limits" = one jaw with hard stops, like the hook)
+
+# ---------------- jaws: motion ----------------
+jaw.sweep_current 75             # goal current during jaw sweeps / closes
+jaw.sweep_profile_velocity 22
+jaw.move_profile_velocity 60     # M5 back to the middle, gentle part
+jaw.move_fast_profile 100        # M5 back to the middle, fast part ...
+jaw.move_fast_current 150        # ... with more current
+jaw.move_slow_margin 200         # gentle for the last N ticks before the target ...
+jaw.move_current 75              # ... at this current
+jaw.dir_m2 1                     # +1: opening is positive
+jaw.dir_m5 1
+jaw.max_sweep 5000               # opening sweep safety limit (ticks)
+jaw.max_close 1800               # M2 close-onto-M5 safety limit (ticks)
+jaw.stall_velocity 3
+jaw.stall_time 0.25
+jaw.rp_hold_during_jaws 100      # roll/pitch goal current while the jaws home
+jaw.rp_final_hold 1193           # roll/pitch goal current after homing
+jaw.jaw_final_hold 75
+
+# ---------------- jaws: finding the center ----------------
+# Forceps: M5 is placed from its load step (or its engaged start); M2 then closes until it TOUCHES M5.
+jaw.m5_step_offset 107           # default step - center if the adapter has no entry below
+jaw.m2_step_offset 139
+jaw.m2_contact_offset -4         # M2 contact position - center (M5 centered)
+jaw.m2_apply_contact_offset false # false: M2 parks AT the detected contact (offset only cross-checks it)
+jaw.m2_center_snap_max 300       # (only with <adapter>.m2_center_angle) M2 snaps after the contact only within this
+jaw.m5_center_snap_max 300       # (only with <adapter>.m5_center_angle) step mode snaps M5 only within this
+jaw.m5_engaged_start 63          # engaged M5 sweep start - center
+jaw.engaged_trend 1.10           # M5 "engaged at start": current climb 450-600 vs 150-300 ticks
+jaw.m2_engaged_trend 1.06
+jaw.m5_engaged_mid 1.025         # ... and already climbing at 300-450 (else a step starting: keep sweeping)
+jaw.m5_defer_travel 1300
+jaw.stop_after_step 450
+jaw.check_tol 80                 # M2 step vs contact disagreement that raises a JAW FLAG
+jaw.wall_current 150             # held jaw's current while the other closes onto it
+jaw.collapse_ratio 0.8           # contact = at current limit AND speed < ratio x cruising
+jaw.goto_push_ratio 0.15         # M5 move back: nearly stalled at the limit = blocked
+
+# step finder (JawHoming.h StepFinder), validated on 30 forceps_01 mounts
+step.dx 150
+step.min_run 150
+step.hold 450
+step.w 15
+step.min_runup 250
+step.min_ratio 1.15
+step.z 4.0
+step.engaged_at 600
+
+# jaw step offsets per adapter (measured with THIS tool on that adapter; verify:=true prints them)
+# psm1/psm2 SWAPPED ~11:00 4 Nov with the adapter switch: values follow the adapter hardware.
+FTBEQBRA.m5_step_offset 218          # measured 204, 232 (4 Nov, M2 start 7048)
+FTBEQBRA.m2_step_offset 160          # measured 166, 154
+FTBEO5G1.m5_step_offset 107          # not measured on this adapter yet (first-adapter values)
+FTBEO5G1.m2_step_offset 139
+
+# ---------------- roll / pitch ----------------
+rp.stall_velocity 5
+rp.confirm_time 0.25
+rp.start_grace 0.6
+rp.roll_current_thresh 85
+rp.pitch_current_thresh 65
+rp.roll_sweep_profile 55
+rp.roll_fast_profile 200
+rp.roll_final_profile 40
+rp.roll_stop_current 100
+rp.roll_fast_current 350
+rp.roll_center_current 350
+rp.roll_expected_range 7592      # ticks between roll limits (forceps: 7584-7605 measured)
+rp.roll_slow_margin 1000
+rp.roll_center_profile 200
+rp.pitch_center_profile 60
+rp.pitch_sweep_current 100
+rp.pitch_contact_sat 0.75
+rp.pitch_contact_ratio 0.85
+rp.pitch_sweep_profile 22
+rp.pitch_fast_profile 60
+rp.pitch_expected_range 1704     # ticks between pitch limits (forceps: 1702-1781 seen across adapters)
+rp.pitch_slow_margin 450
+rp.pitch_push_frac 0.85          # pitch stop when mean current >= frac x sweep current ...
+rp.pitch_push_time 0.10          # ... over this long, even while still moving
+rp.free_jaws_during_pitch false  # forceps jaw homing was calibrated with the jaws HELD during pitch
+rp.pitch_fast true                # pitch runs fast between the limits (expected range > 0)
+rp.pitch_min_range 0             # pitch range sanity check, 0 = off
+rp.pitch_max_range 0
+rp.pitch_angle_tol 0             # pitch engagement check (limit 1 disc angle vs <adapter>.pitch_limit1_angle), 0 = off

@@ -1,0 +1,24 @@
+# KiCad backups and autosave
+*-bak
+*.bak
+_autosave-*
+*-save.kicad_*
+
+# KiCad local settings and caches (regenerated)
+*.kicad_prl
+~*.lck
+\#auto_saved_files#
+fp-info-cache
+
+# Fabrication and export outputs. Regenerated from the board file, so committing them on
+# every change lets them drift silently out of step with the source. A reviewed, fabricated
+# revision commits its exports under <revision>/production/, which is negated below.
+*-backups/
+gerbers/
+*.zip
+*.drl
+*.gbr
+outputs/
+
+!*/production/
+!*/production/**

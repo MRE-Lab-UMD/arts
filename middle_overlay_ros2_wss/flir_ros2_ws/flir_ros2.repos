@@ -1,0 +1,16 @@
+# FLIR ROS 2 middle overlay (FLIR Spinnaker driver + image_common deps).
+# Pin tags or FULL COMMIT HASHES only. Never branches.
+# Fetched/built into: $ARTS_LOCAL/middle_overlay_ros2_wss/flir_ros2_ws/
+#
+# New for ARTS (prior system used Basler Pylon). v3.0.5 (2026-05-08) is the latest
+# release overall; it lives on the shared `ros2-release` branch rather than a
+# per-distro one, so the same tag serves Humble and Jazzy — unlike the UR driver,
+# the Jazzy migration does not move this pin.
+# Ships spinnaker_camera_driver (single) and
+# spinnaker_synchronized_camera_driver (L/R pair w/ hardware trigger).
+# Requires Spinnaker SDK >= 4.x on the host (oem_drivers/spinnaker/).
+repositories:
+  flir_camera_driver:
+    type: git
+    url: https://github.com/ros-drivers/flir_camera_driver.git
+    version: 3.0.5

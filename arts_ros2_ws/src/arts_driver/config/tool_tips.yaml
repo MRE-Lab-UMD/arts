@@ -1,0 +1,46 @@
+# Tool-tip presets: the flange (<arm>_tool0) -> servoed tip transform the servo controller
+# starts with, selected by ur_arm.launch.py tip:=<key> (arts_bringup takes each arm's key from
+# ur_arms.yaml). [x, y, z, qx, qy, qz, qw], translation in METRES, in the tool0 frame. The tip
+# frame's +z is the shaft, pointing away from the flange (the controller's rcm.shaft_axis).
+#
+# ~/set_tool_tip_offset still overrides this at runtime (refused while the RCM is on).
+#
+# rcm_orientation_task (optional): the servo controller's rcm.orientation_task with this tip,
+# i.e. which part of the target orientation is tracked while the RCM is on (none | roll); unset
+# keeps the controller default (none). ur_arm.launch.py applies it.
+
+flange:
+  offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+
+# The da Vinci X instrument adapter with a da Vinci X instrument's shaft, ending at the
+# instrument's WRIST (its yaw axis). Not any one instrument: the shaft and wrist are common to
+# the instruments; the jaw length beyond the wrist is per instrument and NOT included (zero),
+# so this "tip" is the wrist centre.
+#
+# Nominal, from collaborator A's product-of-exponentials model (the stack that ran the arms
+# with speedj for the funder demo), re-expressed in tool0 with the UR5e DH at zero joints:
+#   - the shaft is PERPENDICULAR to wrist_3, along tool0 +y, crossing the wrist_3 axis
+#     88.5 mm beyond the flange face (88.388 mm in the adapter CAD, below), no lateral offset;
+#   - wrist pitch axis 600.0 mm along the shaft, yaw axis 9.0 mm further (609.0 mm).
+# The rotation is Rx(-90 deg): tip +z = tool0 +y.
+#
+# SETTLED 2026-11-02 by the adapter designer's CAD (arts_description/scripts/
+# import_tool_step.py): the shaft line is 88.388 mm beyond the flange face, along tool0 +y,
+# crossing the flange axis (0.000 mm lateral) and parallel to the flange plane. A had 88.5 mm,
+# B 88.8 mm; the CAD value is used (rounded to 0.1 mm). The distance ALONG the shaft to the
+# wrist depends on the instrument and is A's 609.0 mm until measured per instrument (B's
+# ~593.3 mm disagrees; instrument_identification.md).
+da_vinci_x_wrist:
+  offset: [0.0, 0.609, 0.0884, -0.7071067811865476, 0.0, 0.0, 0.7071067811865476]
+
+# The stereo laparoscope on the camera arm (ECM), tip = the scope's distal end on its axis, the
+# view centre (cart_tf's ecm_stereo_optical_frame sits at the same point). From the laparoscope
+# CAD import (arts_description/scripts/import_tool_step.py, checked by the PI 2026-11-02): the
+# scope axis runs along ecm_tool0 +y, 42.13 mm out from the flange face (crossing the flange
+# axis), tip 566.6 mm along it. Rx(-90 deg): tip +z = tool0 +y = the scope axis, out into the
+# scene, as rcm.shaft_axis expects. Nominal CAD, not calibrated (hand-eye calibration, decision 12).
+# Under the RCM the ECM tracks the tip position and the ROLL about the scope (the steering wheel
+# of camera_teleop.py); the scope direction is the RCM's.
+stereo_laparoscope:
+  offset: [0.0, 0.5666, 0.04213, -0.7071067811865476, 0.0, 0.0, 0.7071067811865476]
+  rcm_orientation_task: roll

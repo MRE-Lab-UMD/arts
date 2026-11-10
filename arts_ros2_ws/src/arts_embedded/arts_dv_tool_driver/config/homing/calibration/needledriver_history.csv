@@ -1,0 +1,10 @@
+time,tool,adapter,jaw_mode,roll_range,pitch_range,jaw_range,m5_mode,m5_step_offset,m5_engaged_start,m5_error,m2_mode,m2_step_offset,m2_contact_offset,m2_error,flags,pitch_angle,m5_center_angle,m2_center_angle
+2026-11-04 14:43:19,needledriver,FTBEQBRA,contact,7538,1947,,engaged,,-271,159,contact,,-132,66,,421,3099,604
+2026-11-04 14:45:13,needledriver,FTBEQBRA,contact,7539,,,engaged,,-263,88,contact,,-166,0,,346,3091,2646
+2026-11-04 14:49:05,needledriver,FTBEQBRA,contact,7539,1891,,engaged,,-270,-1,contact,,-71,76,,316,3098,563
+2026-11-04 14:59:49,needledriver,FTBEQBRA,contact,7540,1872,,engaged,,-272,-2,contact,,-25,95,M5 early rise looked like a step but none was confirmed: used engaged start,294,3100,546
+2026-11-04 15:01:04,needledriver,FTBEQBRA,contact,7539,1863,,engaged,,-175,96,contact,,-96,1,,289,3003,680
+2026-11-04 15:02:12,needledriver,FTBEQBRA,contact,7539,,,engaged,,-225,27,contact,,-95,1,,289,3054,629
+2026-11-04 15:17:06,needledriver,FTBEO5G1,contact,7606,,,step,267,,163,step,131,-157,-58,,466,3583,1360
+2026-11-04 15:22:17,needledriver,FTBEO5G1,contact,7606,1895,,step,350,,87,step,63,-187,-30,,461,3575,1425
+2026-11-04 16:10:01,needledriver,FTBEO5G1,contact,7616,1880,,step,79,,-224,step,210,-253,-80,M5 step 326 ticks from the center angle: used the step estimate | M2 step and contact disagree by -193 ticks (added by hand: run ended with Ctrl+C at the review),386,3483,1427

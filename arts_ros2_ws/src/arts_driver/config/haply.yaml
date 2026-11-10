@@ -1,0 +1,27 @@
+# Haply devices on the surgeon console (decision 9). The bridge (arts_driver/haply_bridge.py,
+# node mtm_bridge) publishes /mtm_<side>/... (decision 18) only for the ids listed here; an
+# unlisted id is logged and ignored.
+# Ids are the Hub's: Inverse3 by the Hub's device id, VerseGrip by its "#NNNN" number.
+mtm_bridge:
+  ros__parameters:
+    uri: ws://127.0.0.1:10001
+    # 05E4 and 05DE carry handedness left and right in the Hub (checked 2026-10-29).
+    inverse3_ids: ['05E4', '05DE']
+    inverse3_sides: ['left', 'right']
+    # Gravity compensation per Inverse3 (same order as inverse3_ids): the service's
+    # scaling_factor, kg per collaborator A (Hub default 0 = no compensation). Both handles
+    # carry the same VerseGrip + grip add-on. A's left 0.025 let the left handle drop from the
+    # top of its travel; 0.045 (A's right value) holds both at top, middle and bottom within
+    # 0.8 mm (decision 9, 2026-11-03). The grip weighs ~35 g: this is a tuned value, not its
+    # mass. At 0.035 the left holds and the right sinks: the right device needs ~10 g more.
+    # 2026-11-05, PI at the console: with a hand on the VerseGrip held horizontal, 0.045 makes
+    # the left handle float up (it held still only with the grip hanging vertical) and the
+    # right drift up a little, so left 0.030, right 0.040 (the operator's choice; the hand
+    # carries part of the grip, so the released-handle test above overstates the need; a
+    # released left handle may now sink, as at A's 0.025).
+    gravity_compensation_kg: [0.030, 0.040]
+    # Home return off (A's setting): the handle stays where the surgeon leaves it.
+    home_return: false
+    # Pen numbers as the Hub shows them, each paired with its side's Inverse3 (2026-10-30).
+    versegrip_ids: ['1245', '1237']
+    versegrip_sides: ['left', 'right']

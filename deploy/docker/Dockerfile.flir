@@ -1,0 +1,54 @@
+# Dockerfile.flir — FLIR camera module image.
+# Extends arts-base:jazzy with Spinnaker SDK + flir_ros2_ws overlay.
+#
+# This Dockerfile consumes the SAME functions as the bare-metal installer
+# (deploy/modules/flir.sh) so the two paths cannot drift.  Files are staged
+# into the build context by build_flir.sh.
+#
+# Build:  ./deploy/docker/build_flir.sh          (from repo root)
+# Test:   docker run --rm -it --privileged \
+#           -v /dev/bus/usb:/dev/bus/usb \
+#           arts-flir:jazzy \
+#           Enumeration
+#
+# SpinView_QT is NOT available in this image: it depends on libSpinVideo, which
+# links the jammy ffmpeg ABI that Ubuntu 24.04 does not ship.  Use the CLI
+# sample tools (Enumeration, Acquisition) — they link libSpinnaker only.
+# See the ABI note in deploy/modules/flir.sh.
+#
+FROM arts-base:jazzy
+
+SHELL ["/bin/bash", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
+
+# ── Stage 1: Spinnaker SDK (flir_oem_install) ──
+# Debs are staged at .flir-staging/spinnaker/ by build_flir.sh.
+# The module script checks /tmp/spinnaker/ first (Docker convention).
+COPY .flir-staging/deploy/modules/flir.sh    /tmp/arts/deploy/modules/flir.sh
+COPY .flir-staging/deploy/modules/_common.sh /tmp/arts/deploy/modules/_common.sh
+COPY .flir-staging/oem_drivers/spinnaker/VERSION \
+     /tmp/arts/oem_drivers/spinnaker/VERSION
+COPY .flir-staging/spinnaker/*.deb          /tmp/spinnaker/
+
+RUN ARTS_ROOT=/tmp/arts \
+    && . /tmp/arts/deploy/modules/flir.sh \
+    && flir_oem_install \
+    && rm -rf /tmp/spinnaker
+
+ENV PATH="/opt/spinnaker/bin:${PATH}"
+
+# ── Stage 2: flir_ros2_ws middle overlay (flir_overlay_build) ──
+COPY .flir-staging/middle_overlay_ros2_wss/flir_ros2_ws/flir_ros2.repos \
+     /tmp/arts/middle_overlay_ros2_wss/flir_ros2_ws/flir_ros2.repos
+
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ARTS_ROOT=/tmp/arts \
+    && . /tmp/arts/deploy/modules/flir.sh \
+    && flir_overlay_build /opt/flir_ros2_ws \
+    && rm -rf /tmp/arts /var/lib/apt/lists/*
+
+# ── Entrypoint: source the flir overlay (chains to Jazzy automatically) ──
+RUN printf '#!/bin/bash\nset -e\nsource /opt/flir_ros2_ws/install/setup.bash\nif [ -f /arts_ws/install/setup.bash ]; then\n    source /arts_ws/install/setup.bash\nfi\nexec "$@"\n' \
+    > /ros_entrypoint.sh && chmod +x /ros_entrypoint.sh

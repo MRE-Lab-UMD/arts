@@ -1,0 +1,138 @@
+{
+  "bag": "sync_v2pcb_fix_bag",
+  "tick_period_ns": 12.5,
+  "camera_count": 2,
+  "pulses": 8991,
+  "pulse_index_span": 8991,
+  "pulse_index_gaps": 0,
+  "time_synced_all": true,
+  "trigger_period_us": {
+    "n": 8991,
+    "unit": "us",
+    "mean": 33333.0,
+    "std": 0.0,
+    "min": 33333.0,
+    "max": 33333.0,
+    "spread": 0.0
+  },
+  "hardware": {
+    "trigger_to_exposure_us": {
+      "0": {
+        "n": 8991,
+        "unit": "us",
+        "mean": 709.3115810254695,
+        "std": 2.261570655208644,
+        "min": 704.9625,
+        "max": 713.7625,
+        "spread": 8.800000000000068
+      },
+      "1": {
+        "n": 8991,
+        "unit": "us",
+        "mean": 712.1042334000646,
+        "std": 2.2638376771841413,
+        "min": 707.5125,
+        "max": 716.5375,
+        "spread": 9.024999999999977
+      }
+    },
+    "exposure_width_us": {
+      "0": {
+        "n": 8991,
+        "unit": "us",
+        "mean": 4976.477432988608,
+        "std": 0.04332963503235947,
+        "min": 4976.275,
+        "max": 4976.6,
+        "spread": 0.3250000000007276
+      },
+      "1": {
+        "n": 8991,
+        "unit": "us",
+        "mean": 4977.191805694433,
+        "std": 0.043411554630762385,
+        "min": 4976.9875,
+        "max": 4977.3125,
+        "spread": 0.3249999999998181
+      }
+    },
+    "strobes_missing": {
+      "0": 0,
+      "1": 0
+    },
+    "skew_signed_us": {
+      "n": 8991,
+      "unit": "us",
+      "mean": -2.792652374596819,
+      "std": 3.208982701877762,
+      "min": -10.825,
+      "max": 5.425,
+      "spread": 16.25
+    },
+    "skew_abs_max_us": 10.825
+  },
+  "tick_to_ros_fit": {
+    "slope": 1.0000074147410807,
+    "slope_ppm_error": 7.414741080680187,
+    "residual_std_us": 181.4722175791676
+  },
+  "meta_topics": {
+    "/camera_left/meta": 8990,
+    "/camera_right/meta": 8990
+  },
+  "camera_time_frame_gaps": {
+    "/camera_left/meta": 0,
+    "/camera_right/meta": 0
+  },
+  "software": {
+    "pairs": 8990,
+    "camera_time_delta_us": {
+      "n": 8990,
+      "unit": "us",
+      "mean": 3580554.271730367,
+      "std": 214.98788757455338,
+      "min": 3580181.8880000003,
+      "max": 3580929.112,
+      "spread": 747.2239999999292
+    },
+    "drift_us_per_s": 2.48481501489375,
+    "detrended_residual_std_us": 3.234514468276986,
+    "reported_exposure_time_us": {
+      "/camera_left/meta": {
+        "n": 8990,
+        "unit": "us",
+        "mean": 5004.0,
+        "std": 0.0,
+        "min": 5004.0,
+        "max": 5004.0,
+        "spread": 0.0
+      },
+      "/camera_right/meta": {
+        "n": 8990,
+        "unit": "us",
+        "mean": 5004.0,
+        "std": 0.0,
+        "min": 5004.0,
+        "max": 5004.0,
+        "spread": 0.0
+      }
+    },
+    "implied_strobe_rise_delay_us": {
+      "/camera_left/meta": 27.52256701139231,
+      "/camera_right/meta": 26.808194305566758
+    },
+    "per_pulse_join": {
+      "lag_frames": -1,
+      "correlation": 0.990422613718122,
+      "residual_us": {
+        "n": 8990,
+        "unit": "us",
+        "mean": 0.00014230649220082006,
+        "std": 0.4466212139819634,
+        "min": -1.4013650513231006,
+        "max": 1.2761256765597317,
+        "spread": 2.6774907278828324
+      }
+    }
+  }
+}

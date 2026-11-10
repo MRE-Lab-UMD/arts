@@ -1,0 +1,23 @@
+# Pose repeatability protocol (ISO 9283 pose repeatability), collaborator A's procedure as
+# agreed for the ISMR comparison (PI, 2026-11-06): 5 poses taught by hand with large pose
+# variation, each visible to the tracker; P1 -> P5 repeated `cycles` times in POSE mode; after
+# every move the pose is logged only once the instrument is static and still tracked. ARTS
+# runs it through <arm>/tool_tip_target (repeatability_real_arm.py); the dVRK Classic is run by
+# the collaborator in its own pose mode with the same static rule. Read by
+# repeatability_protocol.py; change it only together with a new benchmark report.
+poses: 5
+cycles: 30
+speed: 0.020              # m/s, cruise speed of the tip along each straight move
+angular_speed: 15.0       # deg/s, cruise rate of the orientation (slerp) along the same move
+acceleration: 0.10        # m/s^2; the angular ramp scales with it (one profile per move)
+
+# Static rule (the same numbers in tracker_pose_capture.py): after the move ends, hold at least
+# min_hold s; then the last `window` s of tracker samples must show every axis std <= static_std_mm
+# and the means of the window's two halves within static_drift_mm, with the marker visible
+# throughout. The measured window is the NEXT `window` s, which must pass the same test (else it
+# is discarded and the wait goes on). No static window within settle_timeout s: a logged miss.
+min_hold: 3.0             # s
+window: 1.0               # s
+static_std_mm: 0.03       # mm, per axis (the fusionTrack's static noise is 0.003-0.006 mm)
+static_drift_mm: 0.02     # mm
+settle_timeout: 30.0      # s

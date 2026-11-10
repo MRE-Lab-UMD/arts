@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!--
+  Placeholder patient-cart pedestal. Primitive box, ARTS-authored, so it is
+  ours to license. The Vention STEP in $ARTS_LOCAL is a measuring reference
+  only and is not published (Terms of Sale §8.2).
+
+  The three mount links are the sole definition of the arm base transforms.
+  Their poses come from config/mount_transforms.yaml. When those numbers are
+  replaced with measurements, nothing else in this file has to change.
+-->
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro name="arts_pedestal">
+    <xacro:property name="yaml_file"
+                    value="$(find arts_description)/config/mount_transforms.yaml"/>
+    <xacro:property name="catalog" value="${xacro.load_yaml(yaml_file)}"/>
+
+    <link name="pedestal">
+      <visual>
+        <origin xyz="${catalog['pedestal']['xyz']}" rpy="${catalog['pedestal']['rpy']}"/>
+        <geometry>
+          <box size="${catalog['pedestal']['size']}"/>
+        </geometry>
+        <material name="arts_placeholder_grey">
+          <color rgba="0.55 0.55 0.58 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="${catalog['pedestal']['xyz']}" rpy="${catalog['pedestal']['rpy']}"/>
+        <geometry>
+          <box size="${catalog['pedestal']['size']}"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="world_to_pedestal" type="fixed">
+      <parent link="world"/>
+      <child link="pedestal"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <xacro:arts_mount name="psm_left"
+                      xyz="${catalog['mounts']['psm_left']['xyz']}"
+                      rpy="${catalog['mounts']['psm_left']['rpy']}"/>
+    <xacro:arts_mount name="psm_right"
+                      xyz="${catalog['mounts']['psm_right']['xyz']}"
+                      rpy="${catalog['mounts']['psm_right']['rpy']}"/>
+    <xacro:arts_mount name="ecm"
+                      xyz="${catalog['mounts']['ecm']['xyz']}"
+                      rpy="${catalog['mounts']['ecm']['rpy']}"/>
+  </xacro:macro>
+
+  <xacro:macro name="arts_mount" params="name xyz rpy">
+    <link name="${name}_mount"/>
+    <joint name="pedestal_to_${name}_mount" type="fixed">
+      <parent link="pedestal"/>
+      <child link="${name}_mount"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+  </xacro:macro>
+
+</robot>

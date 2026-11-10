@@ -1,0 +1,6 @@
+# Plus Toolkit — pinned build (used with Slicer for ultrasound / tracking)
+# https://github.com/PlusToolkit/PlusLib
+#
+# Pinned to Plus-2.8.0, latest tagged release.
+GIT_URL=https://github.com/PlusToolkit/PlusLib.git
+GIT_REF=Plus-2.8.0

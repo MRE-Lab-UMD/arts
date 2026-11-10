@@ -1,0 +1,70 @@
+# Dockerfile.base — ARTS base development image.
+# Foundation layer for all per-module images (Dockerfile.flir, etc.).
+#
+# Build:
+#   ./deploy/docker/build_base.sh          (from repo root)
+#
+# Not `docker build` directly: the middleware layer is shared with the bare-metal path and
+# lives outside this directory, so build_base.sh stages deploy/modules/dds.sh and
+# deploy/cyclonedds.xml into .base-staging/ first. Same pattern as build_flir.sh.
+#
+# This image provides:
+#   - ROS 2 Jazzy ros-base (Ubuntu 24.04 noble)
+#   - CycloneDDS as the default RMW (pinned)
+#   - rosbag2 with MCAP storage
+#   - Tuned CycloneDDS config for GigE + low-latency control
+#   - Common development tools (colcon, rosdep, vcstool)
+#
+FROM ros:jazzy-ros-base-noble
+
+# Docker's default RUN shell is /bin/sh, which on Ubuntu is dash, and dash has no
+# `set -o pipefail`. Decision 4 requires the Dockerfiles to RUN the very same functions
+# from deploy/modules/*.sh that the bare-metal installer does, and every one of those
+# scripts opens with `set -euo pipefail` — so under the default shell they abort on line
+# one with "Illegal option -o pipefail" before defining a single function. This is a
+# property of the module-script contract, not of any one module, so the shell is switched
+# once here rather than wrapping each RUN.
+SHELL ["/bin/bash", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# rosbag2-storage-mcap is the default storage plugin in Jazzy and normally
+# arrives with rosbag2; it is listed explicitly so the image does not depend
+# on what a given ros-base variant happens to pull in.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ros-jazzy-rosbag2-storage-mcap \
+        python3-colcon-common-extensions \
+        python3-vcstool \
+        python3-rosdep \
+        ros-jazzy-ros2-control \
+        ros-jazzy-ros2-controllers \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- RMW: CycloneDDS (deliberate departure from Jazzy's default Fast DDS) ---
+# Chosen for its simpler shared-memory path, better large-data (image) throughput, and
+# predictable behavior in multi-container setups.
+#
+# Installed by running the SAME function the bare-metal installer runs, so the package
+# name and the config file cannot drift between the two paths. That drift was not
+# hypothetical: until 2026-08-12 the host had no CycloneDDS at all and every native run
+# used Fast DDS, which made any bare-vs-container benchmark comparison meaningless.
+COPY .base-staging/deploy/modules/dds.sh    /tmp/arts/deploy/modules/dds.sh
+COPY .base-staging/deploy/cyclonedds.xml    /tmp/arts/deploy/cyclonedds.xml
+
+RUN ARTS_ROOT=/tmp/arts \
+    && . /tmp/arts/deploy/modules/dds.sh \
+    && dds_image_install \
+    && rm -rf /tmp/arts
+
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV CYCLONEDDS_URI=file:///etc/cyclonedds/cyclonedds.xml
+
+# --- Workspace mount point (convention for all ARTS containers) ---
+RUN mkdir -p /arts_ws
+WORKDIR /arts_ws
+
+# --- Entrypoint: source ROS setup, then run the user command ---
+COPY ros_entrypoint.sh /ros_entrypoint.sh
+RUN chmod +x /ros_entrypoint.sh
+ENTRYPOINT ["/ros_entrypoint.sh"]
+CMD ["bash"]

@@ -1,0 +1,181 @@
+# compose.yaml — ARTS Docker Compose profiles.
+# One profile per module; modules are activated via --profile <name>.
+#
+# Usage (from deploy/docker/):
+#   docker compose --profile flir up        # FLIR camera module only (arts-flir:jazzy)
+#   docker compose --profile ur up          # the three UR arm controller managers
+#   docker compose --profile surgeon-console up   # Haply bridge + footswitch
+#   docker compose run --rm arts            # shell in arts:jazzy, every device rule
+#   docker compose up                       # (no default services)
+#
+# Images are built by the scripts, NOT by `docker compose build`: each Dockerfile COPYs
+# from a staging directory the script fills (the module scripts live outside this
+# directory because the bare-metal path uses the same copies).
+#   ./deploy/docker/build_base.sh  →  arts-base:jazzy
+#   ./deploy/docker/build_flir.sh  →  arts-flir:jazzy  (needs the mirrored Spinnaker debs)
+#   ./deploy/docker/build_arts.sh  →  arts:jazzy       (FROM arts-flir:jazzy)
+# or all three: ./arts_install.sh --path docker
+#
+# Every module except FLIR is a SERVICE of the one arts:jazzy image rather than an image of
+# its own; Dockerfile.arts says why (one workspace, one build, no per-module copies).
+#
+# Host-side prerequisites, in every install path (a container cannot do these): the udev
+# rules (footswitch.sh, head_sensor.sh, camera_sync.sh, haply.sh), the arm-network address and firewall
+# opening (ur.sh host_deps), the CycloneDDS sysctls (dds.sh), isolcpus (decision 8).
+# Containers run as root, so the plugdev/dialout/realtime group memberships those scripts
+# give the host user are not needed inside.
+
+x-common: &common
+  runtime: nvidia
+  environment:
+    - NVIDIA_VISIBLE_DEVICES=all
+    - NVIDIA_DRIVER_CAPABILITIES=all
+    - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    - CYCLONEDDS_URI=file:///etc/cyclonedds/cyclonedds.xml
+    - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+    - DISPLAY=${DISPLAY:-:0}
+  volumes:
+    - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    - ${XAUTHORITY:-${HOME}/.Xauthority}:/root/.Xauthority:ro
+    # Imported CAD meshes (pedestal, adapter, laparoscope) for cart_tf / RViz. They live in
+    # the machine-local tree, never in git or the image (Vention's geometry is not ours to
+    # publish); without them cart_tf draws the placeholder box and no adapters.
+    - ${ARTS_LOCAL:-${HOME}/arts_local}/description_catalog:/opt/arts_local/description_catalog:ro
+  network_mode: host
+
+# The arts:jazzy services. Not `build:`-able from here (see header).
+x-arts: &arts
+  <<: *common
+  image: arts:jazzy
+
+# Real time for the ros2_control controller managers (ur_arm.launch.py): SCHED_FIFO needs
+# CAP_SYS_NICE plus an rtprio limit, and `lock_memory: true` needs an unlimited memlock limit
+# — the container equivalent of ur.sh host_deps' realtime group (rtprio 99, memlock
+# unlimited). The kernel has CONFIG_RT_GROUP_SCHED unset, so no --cpu-rt-runtime is needed.
+#
+# CPU pinning is NOT done with `cpuset:`. ur_arm.launch.py already pins each controller
+# manager's loop to its arm's isolated core (cpu_affinity from ur_arms.yaml cpu_core:
+# psm_right 6, psm_left 4, ecm 7). A container cpuset of only those cores would push every
+# other thread of the service (robot_state_publisher, the driver's RTDE and script threads,
+# spawners) onto the isolated cores too. Docker's default cpuset is every CPU, isolated ones
+# included, so the launch file's affinity call succeeds unchanged.
+x-rt: &rt
+  cap_add:
+    - SYS_NICE
+  ulimits:
+    rtprio: 99
+    memlock: -1
+
+# Device access by cgroup rule + the host /dev, not `devices:`. The udev symlinks
+# (/dev/arts_camera_sync, /dev/serial/by-id/usb-FTDI_*, /dev/input/by-id/...) resolve to
+# kernel names that change on replug, `devices:` resolves them once at container start and
+# fails if the device is unplugged then, and a hotplugged device would never appear. Binding
+# the host /dev and allowing only the majors below gives the same access as the host user
+# without --privileged. Majors (from /proc/devices):
+#   13   input: evdev (footswitch /dev/input/event*), joystick (gamepad /dev/input/js0)
+#   188  ttyUSB: Dynamixel FTDI bridge, sync box CP210x/CH340 (/dev/arts_camera_sync)
+#   166  ttyACM: CDC-ACM serial devices
+#   hidraw (GOOVIS head sensor, HID 880a:3501) is a DYNAMIC major (239 on the workstation, 2026-11-01): check
+#   `grep hidraw /proc/devices` and set ARTS_HIDRAW_MAJOR if it differs.
+
+services:
+  flir:
+    <<: *common
+    image: arts-flir:jazzy
+    build:
+      context: .
+      dockerfile: Dockerfile.flir
+    profiles: [flir, patient-cart]
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY:-${HOME}/.Xauthority}:/root/.Xauthority:ro
+      - /dev/bus/usb:/dev/bus/usb
+    privileged: true
+
+  # ── Patient cart: one controller manager per arm (decision 18), each its own service ──
+  # Real arms by default; append use_fake_hardware:=true to the command for mock hardware.
+  psm_left:
+    <<: [*arts, *rt]
+    profiles: [ur, patient-cart]
+    command: ["ros2", "launch", "arts_driver", "ur_arm.launch.py", "arm:=psm_left"]
+
+  psm_right:
+    <<: [*arts, *rt]
+    profiles: [ur, patient-cart]
+    command: ["ros2", "launch", "arts_driver", "ur_arm.launch.py", "arm:=psm_right"]
+
+  ecm:
+    <<: [*arts, *rt]
+    profiles: [ur, patient-cart]
+    command: ["ros2", "launch", "arts_driver", "ur_arm.launch.py", "arm:=ecm"]
+
+  # micro-ROS agent for the ESP32 sync box (decision 14).
+  camera_sync:
+    <<: *arts
+    profiles: [camera_sync, patient-cart]
+    volumes:
+      - /dev:/dev
+    device_cgroup_rules:
+      - "c 188:* rmw"
+    command: ["ros2", "launch", "arts_camera_sync", "camera_sync.launch.py"]
+
+  # ── Surgeon console ──
+  # Haply bridge. The Inverse Service is a closed host binary (decision 9, haply.sh
+  # oem_install on the HOST); the bridge reaches its WebSocket on localhost through host
+  # networking, so the container needs no Haply device and no Haply software.
+  haply:
+    <<: *arts
+    profiles: [haply, surgeon-console]
+    command: ["ros2", "run", "arts_driver", "haply_bridge"]
+
+  # Savant Elite2 pedal (footswitch.sh installs the host udev rule).
+  footswitch:
+    <<: *arts
+    profiles: [footswitch, surgeon-console]
+    volumes:
+      - /dev/input:/dev/input
+    device_cgroup_rules:
+      - "c 13:* rmw"
+    command: ["ros2", "run", "arts_teleop", "footswitch.py"]
+
+  # GOOVIS head-presence sensor, HID 880a:3501 (head_sensor.sh installs the host udev
+  # rule). The node finds its /dev/hidrawN through /sys, so the number may change.
+  head_sensor:
+    <<: *arts
+    profiles: [head_sensor, surgeon-console]
+    volumes:
+      - /dev:/dev
+    device_cgroup_rules:
+      - "c ${ARTS_HIDRAW_MAJOR:-239}:* rmw"
+    command: ["ros2", "run", "arts_teleop", "head_sensor.py"]
+
+  # Instrument disc drives: the adapters' Dynamixel servos on the FTDI buses named by
+  # /dev/serial/by-id/usb-FTDI_* in arts_dv_tool_driver/config/disc_buses.yaml.
+  disc_drive:
+    <<: *arts
+    profiles: [disc_drive, patient-cart]
+    volumes:
+      - /dev:/dev
+    device_cgroup_rules:
+      - "c 188:* rmw"
+    command: ["ros2", "launch", "arts_dv_tool_driver", "disc_drive.launch.py"]
+
+  # ── Development / integration shell: every device class above, RT rights, X11 ──
+  # For arts_bringup.launch.py, the gamepad (joy, /dev/input/js0), the Dynamixel tool drive,
+  # the GOOVIS head sensor.
+  arts:
+    <<: [*arts, *rt]
+    profiles: [arts, dev]
+    stdin_open: true
+    tty: true
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY:-${HOME}/.Xauthority}:/root/.Xauthority:ro
+      - ${ARTS_LOCAL:-${HOME}/arts_local}/description_catalog:/opt/arts_local/description_catalog:ro
+      - /dev:/dev
+    device_cgroup_rules:
+      - "c 13:* rmw"
+      - "c 166:* rmw"
+      - "c 188:* rmw"
+      - "c ${ARTS_HIDRAW_MAJOR:-239}:* rmw"
+    command: ["bash"]

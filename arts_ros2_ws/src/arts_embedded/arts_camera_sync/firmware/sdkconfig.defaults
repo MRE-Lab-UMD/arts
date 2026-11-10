@@ -1,0 +1,30 @@
+# Base defaults for the ARTS camera sync box, shared by all three run modes. Committed so a
+# fresh checkout flashes equivalent firmware; the generated `sdkconfig` is gitignored.
+#
+# The MICROROS mode needs additional settings that would break the console-based BLINK and
+# SELFTEST modes, so they live in sdkconfig.defaults.microros and are layered on top:
+#
+#   idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.microros" build
+
+CONFIG_IDF_TARGET="esp32"
+
+# Capture accuracy is the entire purpose of this board: run the CPU flat out, and keep the
+# MCPWM interrupt path in IRAM so a flash cache miss cannot delay an edge timestamp. The
+# capture callbacks in sync_engine.c are IRAM_ATTR for exactly this reason — if you turn
+# MCPWM_ISR_CACHE_SAFE off, that annotation becomes pointless rather than wrong.
+#
+# The option was called CONFIG_MCPWM_ISR_IRAM_SAFE before ESP-IDF v5.5; the old name still
+# works through IDF's rename mechanism but prints a warning on every configure.
+#
+# CONSEQUENCE THAT IS NOT OBVIOUS: with this enabled the driver validates that the user_ctx
+# passed to mcpwm_capture_channel_register_event_callbacks() lies in internal RAM, so a small
+# integer cast to a pointer is rejected with ESP_ERR_INVALID_ARG. See s_strobe_ctx in
+# sync_engine.c.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_MCPWM_ISR_CACHE_SAFE=y
+CONFIG_MCPWM_CTRL_FUNC_IN_IRAM=y
+
+# A capture ISR that silently stops corrupts a skew measurement instead of failing, so the
+# watchdogs stay enabled and a stall is loud.
+CONFIG_ESP_INT_WDT=y
+CONFIG_ESP_TASK_WDT_EN=y

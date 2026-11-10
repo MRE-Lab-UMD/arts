@@ -1,0 +1,21 @@
+# Operator input mapping (decision 9): the ONE file that says what each pedal and button does.
+# Edit this file, not the nodes. VerseGrip buttons join it when the Haply bridge exists.
+#
+# Actions implemented today: record_toggle. Any other action name is accepted, logged on
+# press, and does nothing yet (clutch, camera, instrument_switch are Phase 4 work).
+# Energy is NEVER mapped here: the Bovie pedal reaches the ESU through the ESU-TAP board.
+
+footswitch_teleop:
+  # Kinesis Savant Elite2 (USB 29ea:0100). The keyboard interface carries all three pedals.
+  # The glob matches any unit; deploy/modules/footswitch.sh installs the udev rule that
+  # gives the plugdev group read access.
+  device: /dev/input/by-id/usb-Kinesis_Savant_Elite2_Foot_Pedal_*-if01-event-kbd
+  # evdev key code -> pedal, measured 2026-10-28 (factory programming: A, B, C).
+  pedals:
+    30: left     # KEY_A
+    48: middle   # KEY_B
+    46: right    # KEY_C
+  actions:
+    left: clutch
+    middle: camera
+    right: record_toggle

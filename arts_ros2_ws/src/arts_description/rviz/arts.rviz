@@ -1,0 +1,70 @@
+# The cart view (decision 18): one RobotModel per arm, each reading its own
+# /<arm>/robot_description, in the one tf tree rooted at world. Started by
+# arts_bringup.launch.py rviz:=true. An arm that is not running simply shows as an error row.
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Reference Frame: world
+      Cell Size: 0.1
+      Plane Cell Count: 30
+      Enabled: true
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Show Names: false
+      Marker Scale: 0.2
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Pedestal
+      Topic:
+        Value: /cart_tf/pedestal
+        Durability Policy: Transient Local
+      Enabled: true
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Collision capsules
+      Topic:
+        Value: /collision_guard/capsules
+      Enabled: true
+    - Class: rviz_default_plugins/RobotModel
+      Name: psm_left
+      Description Source: Topic
+      Description Topic:
+        Value: /psm_left/robot_description
+        Durability Policy: Transient Local
+      Enabled: true
+    - Class: rviz_default_plugins/RobotModel
+      Name: psm_right
+      Description Source: Topic
+      Description Topic:
+        Value: /psm_right/robot_description
+        Durability Policy: Transient Local
+      Enabled: true
+    - Class: rviz_default_plugins/RobotModel
+      Name: ecm
+      Description Source: Topic
+      Description Topic:
+        Value: /ecm/robot_description
+        Durability Policy: Transient Local
+      Enabled: true
+  Global Options:
+    Fixed Frame: world
+    Background Color: 48; 48; 48
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 3.0
+      Focal Point: {X: 0.0, Y: 0.0, Z: 0.9}
+      Pitch: 0.5
+      Yaw: 2.4
+      Target Frame: world
+Window Geometry:
+  Width: 1400
+  Height: 900

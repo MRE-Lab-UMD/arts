@@ -1,0 +1,37 @@
+# da Vinci X/Xi ProGrasp Forceps, ref 470093, 8 mm: bring-up kinematics for arts_dv_tool_driver.
+#
+# Provenance: the ARTS team. Bring-up values: a COPY of 471205's (collaborator A logged no
+# ProGrasp values; A judged it close to the fenestrated bipolar forceps, and the dVRK pattern
+# puts both in the 10.7 mm pitch-to-yaw family). NOT measured on this instrument; every
+# geometric value is to be measured per instrument (docs/instrument_identification.md, rule).
+#
+# Coupling (disc angles from joint angles, radians, as on the adapter's servos):
+#   [disc_1, disc_2, disc_4, disc_5] = coupling * [roll, wrist_pitch, wrist_yaw, jaw]
+# where wrist_yaw is the common bend of both jaws and jaw is their opening (left - right).
+# Disc 3 is not driven by this instrument. Disc zero = disc_drive's set_zero after engaging by
+# hand: wrist straight, jaw just closed (a visual zero, docs/modules/dv_tool_driver.md).
+name: ProGrasp Forceps
+ref: "470093"
+diameter_mm: 8
+joints: [roll, wrist_pitch, wrist_yaw, jaw]
+jawed: true
+jaw_gain: 5.0   # 1/s: jaw velocity = jaw_gain x (jaw target - jaw), A's grasper gain
+discs: [disc_1, disc_2, disc_4, disc_5]
+coupling:
+    - [1, 0, 0, 0]
+    - [0, 0.596277, 1.28, 0.64]
+    - [0, 0.95, 0, 0]
+    - [0, -0.596277, -1.28, 0.64]
+limits:   # radians
+  roll:        {min: -5.2360, max: 5.2360}   # +-300 deg
+  wrist_pitch: {min: -1.2217, max: 1.2217}   # +-70 deg
+  wrist_yaw:   {min: -1.3963, max: 1.3963}   # +-80 deg
+  # jaw min below 0, as dVRK does (its LND file: qmin -40 deg, force capped by the jaw's ftmax):
+  # 0 = jaws just closed at the zero; a closed command goes to min (-10 deg, ARTS's choice), so
+  # shut jaws keep pushing = grip, capped by disc_drive at 100 per degree below 0 (1000 here).
+  jaw:         {min: -0.1745, max: 1.5708}   # -10..90 deg, opening
+geometry:   # metres; null = not measured yet
+  shaft_line_from_flange: 0.0884   # the adapter CAD (tool_tips.yaml), not the instrument
+  pitch_axis_along_shaft: null     # bring-up uses 0.600
+  pitch_to_yaw: null               # bring-up uses 0.009
+  jaw_length: null

@@ -1,0 +1,50 @@
+# Loose OEM ROS 2 wrappers that do not ship as their own workspace.
+# Pin tags or FULL COMMIT HASHES only. Never branches.
+# Fetched/built into: $ARTS_LOCAL/middle_overlay_ros2_wss/oem_ros2_ws/
+#
+# Entries are commented until each module is brought up. Uncomment + pin when the
+# module is activated. Pin to the HEAD commit at activation time, then re-pin to
+# a tag when one becomes available.
+repositories:
+  # ACTIVATED 2026-08-17 for arts_embedded/arts_camera_sync (FLIR Stage 5). The micro-ROS
+  # agent is NOT available from apt on Jazzy — `ros-jazzy-micro-ros-*` covers only msgs and
+  # the diagnostic bridge — so it is built from source here. Upstream ships per-distro
+  # BRANCHES rather than tags, so these are the jazzy-branch HEAD commits as of activation;
+  # re-pin to a tag if one ever appears.
+  #
+  # CAUTION, transitive floating pin: micro-ROS-Agent's CMake pulls Micro-XRCE-DDS-Agent as
+  # an ExternalProject. Audit that ref when bumping — it is exactly the
+  # `FetchContent(... GIT_TAG main)` hazard called out in the pinning policy, and it sits
+  # underneath a pin that looks solid.
+  micro_ros_agent:
+    type: git
+    url: https://github.com/micro-ROS/micro-ROS-Agent.git
+    version: 52abdf5a9897637b2539cb1c239e1ec4fa92e01c
+  micro_ros_setup:
+    type: git
+    url: https://github.com/micro-ROS/micro_ros_setup.git
+    version: 581af42e5e925fd09202ce0d560d9574bf7abbfe
+  # ACTIVATED 2026-11-01 for arts_embedded/arts_dv_tool_driver (the da Vinci X adapters'
+  # Dynamixel XC330 disc servos, two FTDI buses). 4.0.3 is the release collaborator A's
+  # working Humble driver was tested against (its README); tag pinned here rather than the
+  # rolling `ros-jazzy-dynamixel-sdk` apt package, whose exact version stops being
+  # installable. The tag holds several packages; arts_dv_tool_driver needs `dynamixel_sdk`.
+  DynamixelSDK:
+    type: git
+    url: https://github.com/ROBOTIS-GIT/DynamixelSDK.git
+    version: 4.0.3
+# Uncomment when module is activated (add under `repositories:` above):
+# (haply_inverse3_ros2 dropped 2026-10-30: it republishes on a 100 Hz timer with publish-time
+#  stamps, against decision 9; ARTS's bridge is arts_driver/haply_bridge.)
+#   zivid-ros:
+#     type: git
+#     url: https://github.com/zivid/zivid-ros.git
+#     version: TODO_PIN_WHEN_NEEDED
+#   realsense-ros:
+#     type: git
+#     url: https://github.com/IntelRealSense/realsense-ros.git
+#     version: TODO_PIN_WHEN_NEEDED
+#   robotiq:
+#     type: git
+#     url: https://github.com/PickNikRobotics/robotiq.git
+#     version: TODO_PIN_WHEN_NEEDED

@@ -1,0 +1,35 @@
+# Python packages the MICROROS firmware build needs INSIDE the ESP-IDF venv.
+# Installed by `camera_sync_oem_install` in deploy/modules/camera_sync.sh.
+#
+# WHY THIS FILE EXISTS, and why it looks like a contradiction of the ROS-free-shell rule.
+# The BLINK and SELFTEST builds are pure ESP-IDF and need nothing here. The MICROROS build
+# is different in kind: micro_ros_espidf_component does not ship a prebuilt archive, it
+# CROSS-COMPILES ~57 real ROS 2 packages with colcon into libmicroros.a, so the interpreter
+# driving that build needs the ROS build tooling. ESP-IDF's venv is created with
+# `include-system-site-packages = false`, so it cannot see apt's python3-catkin-pkg and the
+# build dies on `ModuleNotFoundError: No module named 'catkin_pkg'` at the first ament
+# package (observed 2026-08-18). "Build firmware in a ROS-free shell" still holds — it is a
+# rule about not leaking PYTHONPATH from a sourced overlay, not a claim that the build needs
+# no ROS tooling.
+#
+# INSTALLED INTO THE ESP-IDF VENV, NOT SYSTEM PYTHON, deliberately. System Python already
+# carries apt's python3-catkin-pkg / python3-empy / python3-lark for the host ROS build, and
+# pip-installing over them is the classic apt-vs-pip conflict. The venv copy is confined to
+# $ARTS_LOCAL, is recorded by this file, and disappears with the toolchain.
+#
+# Only the four DIRECT requirements are pinned, not a full `pip freeze`. A freeze of this
+# venv would also pin ESP-IDF's own ~60 packages, which are the toolchain's business and are
+# already pinned by oem_drivers/esp_idf/VERSION.
+#
+# KNOWN SIDE EFFECT, benign but do not be surprised by it: colcon-python-setup-py caps
+# setuptools, so installing this downgrades the venv's setuptools (84.0.0 -> 79.0.1 on
+# 2026-08-18). ESP-IDF v5.5.5 builds fine with it.
+#
+# Upstream documents `catkin_pkg colcon-common-extensions lark` only. empy is added because
+# rosidl generation needs it, and it is pinned BELOW 4.0 on purpose: empy 4.x changed the
+# interpreter API and breaks rosidl's templates.
+
+catkin_pkg==1.1.0
+colcon-common-extensions==0.3.0
+lark==1.3.1
+empy==3.3.4

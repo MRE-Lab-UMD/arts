@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>arts_driver</name>
+  <version>0.1.0</version>
+  <description>ARTS bringup launch and per-component configs (toggle arguments).</description>
+  <maintainer email="arts@anonymous.invalid">ARTS Maintainers</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>arts_description</depend>
+  <depend>arts_interfaces</depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>python3-websocket</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>arts_dv_tool_driver</exec_depend>
+  <exec_depend>arts_esu</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>arts_controllers</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>controller_manager_msgs</exec_depend>
+  <exec_depend>ur_dashboard_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <!-- ur_ros2_ws middle overlay, pinned in ur_ros2.repos. Only the arm launch needs it,
+       so a bringup with cameras:=true alone still works without the overlay sourced. -->
+  <exec_depend>ur_robot_driver</exec_depend>
+  <!-- flir_ros2_ws middle overlay, pinned in flir_ros2.repos. cameras.launch.py resolves
+       its node from here, and in free-running mode also its parameter definition file via
+       FindPackageShare('spinnaker_camera_driver'). Same reasoning as ur_robot_driver above:
+       exec-only, so a bringup without cameras does not need the overlay sourced. -->
+  <exec_depend>spinnaker_camera_driver</exec_depend>
+  <exec_depend>rosbag2_transport</exec_depend>
+  <exec_depend>arts_display</exec_depend>
+  <exec_depend>arts_record</exec_depend>
+  <exec_depend>arts_teleop</exec_depend>
+  <exec_depend>arts_safety</exec_depend>
+  <exec_depend>arts_calibration</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

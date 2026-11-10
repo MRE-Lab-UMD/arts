@@ -1,0 +1,22 @@
+# <arm>/set_rcm: switch the remote centre of motion on or off (decision 17 task layer).
+#
+# Switching is live, with no controller swap. Turning it ON is refused unless the shaft
+# already passes within rcm.engage_max_deviation of the point and the tip is inserted at
+# least rcm.insertion_limits[0] beyond it, so enabling can never make the arm jump onto
+# the point. OFF is always accepted. After either switch the controller HOLDS until a
+# reference newer than the switch arrives, and the teleop follower disengages on it:
+# with the RCM on, the shaft orientation follows from the tip position, so a source that
+# kept sending its old orientation would swing the tool when the RCM is turned off.
+#
+# Units are METRES. The point is given in the arm's base frame (<arm>_base_link) or,
+# with from_current_shaft, placed on the current shaft line insertion_depth behind the tip.
+bool enable
+bool from_current_shaft
+float64 insertion_depth             # m, used only with from_current_shaft; <= 0: the last engaged depth
+geometry_msgs/PointStamped point    # frame_id <arm>_base_link or empty; ignored with from_current_shaft
+---
+bool success
+string message
+geometry_msgs/Point applied_point   # base frame, as held by the controller
+float64 deviation                   # m, shaft line to the point at the moment of the switch
+float64 insertion_depth             # m, tip beyond the point along the shaft

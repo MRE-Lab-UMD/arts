@@ -1,0 +1,73 @@
+# ARTS port (2026-11-04): the adapter designer's file, values unchanged. The per-adapter keys were
+# psm1.* / psm2.* in the original; they are now the adapter's FTDI serial (psm1 = FTBEO5G1,
+# psm2 = FTBEQBRA, from the designer's own adapter files), because the values follow the adapter
+# hardware, not the arm it sits on. "psm1"/"psm2" in the comments below are the designer's names.
+# CAUTERY HOOK: tool-specific homing values -- PROVISIONAL (created 4 Nov 2026, nothing measured yet).
+# Loaded by tool_homing with tool:=hook (the GUI's "Cautery Hook" button passes this).
+# Every key below is REQUIRED: a missing or unknown key stops the node before any motor moves.
+# Format: <key> <value>   ('#' starts a comment). Ticks: 4096 per motor turn. Currents: raw Dynamixel units.
+# Edits take effect the next time the node starts (no rebuild needed).
+# A ROS parameter on the command line (e.g. -p lim.sweep_current:=60) still overrides a value here.
+#
+# Hook vs forceps:
+#   * ONE jaw, driven by M5, with hard mechanical stops on both sides. M2 has no disk (it just holds its start).
+#   * So no contact jaw plan: after roll and pitch, M5 is homed LIKE PITCH -- limit 1, limit 2, park at the
+#     midpoint -- with the lim.* values below (homing.jaw_mode limits). No jaw.* / step.* keys in this file.
+#   * roll/pitch: forceps values with the hook's own expected ranges (measured 4 Nov). Re-check them as more
+#     runs come in: each run appends the measured ranges to jaw_homing_logs/lim_homing_summary.csv; put the
+#     SMALLEST seen (per adapter) into rp.roll_expected_range / rp.pitch_expected_range / lim.expected_range.
+
+homing.jaw_mode limits
+
+# ---------------- hook jaw (M5): hard limits, like pitch ----------------
+lim.motor 5
+lim.direction 1                  # first sweep direction (+1 = same as the jaws' opening direction)
+lim.sweep_current 75             # UNMEASURED: gentle (pitch uses 100); raise only if it stalls before the stop
+lim.sweep_profile 10             # SLOW (~150 ticks/s): limit detection is a current ramp (~60), keep as tested
+lim.stall_velocity 3             # 'stopped' = |velocity| < 3 (shared rp.stall_velocity 5 is too close to 10)
+lim.fast_profile 30              # limit1 -> limit2 middle only; cautious first step (3x sweep). Stop tests are off while fast
+lim.expected_range 1850          # measured 1997 (psm2), 1908 (psm1), 4 Nov; below the smallest -> slow-down never late
+lim.slow_margin 450
+lim.center_profile 30            # move to the midpoint (never touches a stop); slow too for the first runs
+lim.current_thresh 50            # 'loaded' stop: current above this AND speed < half of cruising (pitch 65 at 100)
+lim.contact_sat 0.75             # contact stop: current >= 0.75 x sweep_current AND slowing, 3 samples
+lim.contact_ratio 0.85
+lim.push_frac 0.85               # push stop: mean current >= 0.85 x sweep_current over push_time
+lim.push_time 0.10
+lim.min_range 300                # limit 2 closer than this to limit 1 = reversal failed -> stop
+lim.max_travel 5000              # sweep this far without a stop -> stop (jaw disengaged?)
+lim.rp_hold 100                  # roll/pitch goal current while the jaw homes (= contact jaw homing)
+lim.rp_final_hold 1193           # roll/pitch goal current after homing
+lim.final_hold 75                # jaw goal current after homing
+
+# ---------------- roll / pitch (forceps values, ranges unmeasured) ----------------
+rp.stall_velocity 5
+rp.confirm_time 0.25
+rp.start_grace 0.6
+rp.roll_current_thresh 85
+rp.pitch_current_thresh 65
+rp.roll_sweep_profile 55
+rp.roll_fast_profile 200
+rp.roll_final_profile 40
+rp.roll_stop_current 100
+rp.roll_fast_current 350
+rp.roll_center_current 350
+rp.roll_expected_range 7526      # hook: 7526-7530 psm2 (5 runs), 7596 psm1 (4 Nov); the smallest
+rp.roll_slow_margin 1000
+rp.roll_center_profile 200
+rp.pitch_center_profile 60
+rp.pitch_sweep_current 100
+rp.pitch_contact_sat 0.75
+rp.pitch_contact_ratio 0.85
+rp.pitch_sweep_profile 22
+rp.pitch_fast_profile 60
+rp.pitch_expected_range 1836     # hook: psm2 1836-2005 (4 runs, spread!), psm1 1881 (4 Nov); the smallest
+rp.pitch_slow_margin 450
+rp.pitch_push_frac 0.85
+rp.pitch_push_time 0.10
+rp.free_jaws_during_pitch true   # coupling unknown: M5 free during pitch so pitch can't twist the hook against
+rp.pitch_fast true                # pitch runs fast between the limits (expected range > 0)
+rp.pitch_min_range 0             # pitch range sanity check, 0 = off
+rp.pitch_max_range 0
+rp.pitch_angle_tol 0             # pitch engagement check (limit 1 disc angle vs <adapter>.pitch_limit1_angle), 0 = off
+                                 # a stop; M5 is homed right after pitch anyway (M2 has no disk)

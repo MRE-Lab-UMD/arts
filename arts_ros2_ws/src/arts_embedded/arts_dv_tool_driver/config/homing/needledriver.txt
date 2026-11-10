@@ -1,0 +1,126 @@
+# ARTS port (2026-11-04): the adapter designer's file, values unchanged. The per-adapter keys were
+# psm1.* / psm2.* in the original; they are now the adapter's FTDI serial (psm1 = FTBEO5G1,
+# psm2 = FTBEQBRA, from the designer's own adapter files), because the values follow the adapter
+# hardware, not the arm it sits on. "psm1"/"psm2" in the comments below are the designer's names.
+# LARGE NEEDLE DRIVER: tool-specific homing values -- PROVISIONAL (created 4 Nov 2026 from scissors.txt, nothing measured).
+# Loaded by tool_homing with tool:=needledriver. Every key is REQUIRED (missing/unknown key -> node refuses to start).
+# Format: <key> <value>   ('#' starts a comment). Ticks: 4096 per motor turn. Currents: raw Dynamixel units.
+#
+# Needle driver vs scissors:
+#   * jaw CENTER = jaws JUST TOUCHING (like scissors): M2 closes onto M5 and the contact test finds the touch.
+#   * every value is a SCISSORS value for now. Learn this tool with calibration runs (slow, jog each jaw to its
+#     true center with the sticks + A; at the end A saves the measured values into this file, B discards):
+#       ros2 launch arts_dv_tool_driver tool_homing.launch.py arm:=<arm with FTBEO5G1> tool:=needledriver calibrate:=true config_dir:=<source config/homing>
+#   * roll/pitch expected ranges 0 = never fast until calibrated. Per-adapter step offsets get added by calibration.
+# Edits take effect the next time the node starts (no rebuild needed).
+
+homing.jaw_mode contact          # jaw sweep + close-onto-contact plan ("limits" = one jaw with hard stops, like the hook)
+
+# ---------------- jaws: motion ----------------
+jaw.sweep_current 75             # goal current during jaw sweeps / closes
+jaw.sweep_profile_velocity 22
+jaw.move_profile_velocity 60     # M5 back to the middle, gentle part
+jaw.move_fast_profile 100        # M5 back to the middle, fast part ...
+jaw.move_fast_current 150        # ... with more current
+jaw.move_slow_margin 200         # gentle for the last N ticks before the target ...
+jaw.move_current 120             # UNMEASURED (scissors needed 120 for blade friction; forceps 75)
+jaw.dir_m2 1                     # +1: opening is positive
+jaw.dir_m5 1
+jaw.max_sweep 5000               # opening sweep safety limit (ticks)
+jaw.max_close 1800               # M2 close-onto-M5 safety limit (ticks)
+jaw.stall_velocity 3
+jaw.stall_time 0.25
+jaw.rp_hold_during_jaws 100      # roll/pitch goal current while the jaws home
+jaw.rp_final_hold 1193           # roll/pitch goal current after homing
+jaw.jaw_final_hold 75
+
+# ---------------- jaws: finding the center ----------------
+# Same method as forceps: M5 from its load step (or engaged start); M2 closes until it TOUCHES M5.
+# The engaged/step thresholds below are forceps-validated; scissors data will show whether they hold.
+# Scissors M5: the blades drag M2's (not yet engaged) blade along, so M5 is near its current limit from the
+# start (friction, NOT engagement), never shows a free-spin step, and stops after ~300-390 ticks -> the
+# fallback rule (center = start - m5_engaged_start) places it. M5 must come back well past its start, against
+# friction (hence jaw.move_current). M2 then closes onto M5 and stops at the touch.
+jaw.m5_step_offset 107           # UNMEASURED (forceps value); default if the adapter has no entry
+jaw.m2_step_offset 139           # UNMEASURED (forceps value); only a cross-check (M2 is placed by contact)
+jaw.m2_contact_offset -98        # tool-wide DEFAULT for adapters without <adapter>.m2_contact_offset (from 6 psm2 runs)
+jaw.m2_apply_contact_offset true  # needle driver: the contact fires ~200 ticks PAST the true touch (still moving at the
+                                 # current limit; psm2 4 Nov), so M2 moves back to contact - m2_contact_offset after it
+jaw.m2_center_snap_max 400       # after the contact, snap M2 to <adapter>.m2_center_angle within 400 (tilted PSM1 runs: ~205)
+jaw.m5_center_snap_max 1000      # step mode: snap M5 to <adapter>.m5_center_angle unless the step is wildly off (PSM1: the
+                                 # step-to-center distance varied 78-350, the true center only ~100) -> nearly always snap
+jaw.m5_engaged_start -246        # tool-wide DEFAULT for adapters without <adapter>.m5_engaged_start (from 6 psm2 runs)
+jaw.engaged_trend 1.10           # M5 "engaged at start": current climb 450-600 vs 150-300 ticks
+jaw.m2_engaged_trend 1.06
+jaw.m5_engaged_mid 1.025         # ... and already climbing at 300-450 (else a step starting: keep sweeping)
+jaw.m5_defer_travel 1300
+jaw.stop_after_step 450
+jaw.check_tol 80                 # M2 step vs contact disagreement that raises a JAW FLAG
+jaw.wall_current 150             # held jaw's current while the other closes onto it
+jaw.collapse_ratio 0.8           # contact = at current limit AND speed < ratio x cruising
+jaw.goto_push_ratio 0.15         # M5 move back: nearly stalled at the limit = blocked
+
+# step finder (JawHoming.h StepFinder): forceps-validated values, UNMEASURED for scissors
+step.dx 150
+step.min_run 150
+step.hold 450
+step.w 15
+step.min_runup 250
+step.min_ratio 1.15
+step.z 4.0
+step.engaged_at 600
+
+# jaw step offsets per adapter (measured with THIS tool on that adapter; verify:=true prints them)
+# psm1/psm2 SWAPPED ~11:00 4 Nov with the adapter switch: values follow the adapter hardware.
+
+# ---------------- roll / pitch ----------------
+rp.stall_velocity 5
+rp.confirm_time 0.25
+rp.start_grace 0.6
+rp.roll_current_thresh 101        # needle driver roll runs AT its current cap (roll_stop_current 100) the whole way, so the
+                                 # "loaded" test (current > thresh + slowing) gave a FALSE limit 2 (range 5091, still moving
+                                 # at -23; psm2 4 Nov). 101 > the cap: only a real stop (speed < 5) counts as a roll limit.
+rp.pitch_current_thresh 65
+rp.roll_sweep_profile 55
+rp.roll_fast_profile 200
+rp.roll_final_profile 40
+rp.roll_stop_current 100
+rp.roll_fast_current 350
+rp.roll_center_current 350
+rp.roll_expected_range 7486      # calibrated 2026-11-04: smallest - 50 of 1 run(s): 7536
+rp.roll_slow_margin 1000
+rp.roll_center_profile 200
+rp.pitch_center_profile 60
+rp.pitch_sweep_current 100
+rp.pitch_contact_sat 0.75
+rp.pitch_contact_ratio 0.85
+rp.pitch_sweep_profile 22
+rp.pitch_fast_profile 60
+rp.pitch_expected_range 1813     # (only used if rp.pitch_fast true) smallest real-stop range 1863 - 50; the 1639 run was a FALSE stop
+rp.pitch_slow_margin 450
+rp.pitch_push_frac 0.85          # pitch stop when mean current >= frac x sweep current ...
+rp.pitch_push_time 0.10          # ... over this long, even while still moving
+rp.free_jaws_during_pitch true   # torque off on M2/M5 during pitch: the coupling otherwise twists the blades (psm1)
+rp.pitch_fast false               # needle driver: fast pitch runs at the 100 current cap and the push test then gave FALSE
+                                 # limits ~300 ticks after the slow-down (psm2 GUI runs 15:09 range 1639, 15:31 range 1436)
+rp.pitch_min_range 1750          # real-stop ranges: psm2 1863-1912, psm1 1889-1902 (4 Nov). Outside -> STOP, remount:
+rp.pitch_max_range 2200          # backstop only: a good psm1 run measured 2001; bad engagements are caught by the angle check
+rp.pitch_angle_tol 600           # engagement check: pitch limit 1 position mod 4096 must be within 600 of <adapter>.pitch_limit1_angle.
+                                 # Good runs: psm1 457-565, psm2 189-632; bad engagement (psm1): 2564-2603 (~half a turn off)
+
+# ---------------- calibration: per adapter ----------------
+# <adapter>.m5_engaged_start / m2_contact_offset override the tool-wide jaw.* on that adapter (start positions differ)
+FTBEQBRA.m5_engaged_start -246       # calibrated 2026-11-04: mean of 6 run(s) on psm2: -271 -263 -270 -272 -175 -225
+FTBEQBRA.m2_contact_offset -98       # calibrated 2026-11-04: mean of 6 run(s) on psm2: -132 -166 -71 -25 -96 -95
+FTBEO5G1.m2_contact_offset -199      # calibrated 2026-11-04: mean of 3 run(s) on psm1: -157 -187 -253
+FTBEO5G1.m5_step_offset 232          # calibrated 2026-11-04: mean of 3 run(s) on psm1: 267 350 79
+FTBEO5G1.m2_step_offset 135          # calibrated 2026-11-04: mean of 3 run(s) on psm1: 131 63 210
+# FTBEQBRA angle check OFF since 2026-11-09: this adapter's disc-4 count at limit 1 walks up fit after fit
+# (11-04 hook 602->1077 in 10 fits; 11-04 needle driver 44-105; 11-06/07 forceps 76->252->353; 11-09 needle
+# driver 2313->2669->2703, three STOPs), so a fixed angle no longer separates a bad engagement from the walk.
+# The pitch range check above still runs. FTBEO5G1 is steady (370-448) and keeps its check.
+#FTBEQBRA.pitch_limit1_angle 326     # calibrated 2026-11-04: mean of 6 run(s) on psm2: 421 346 316 294 289 289
+FTBEO5G1.pitch_limit1_angle 438      # calibrated 2026-11-04: mean of 3 run(s) on psm1: 466 461 386
+FTBEQBRA.m5_center_angle 3074        # calibrated 2026-11-04: mean of 6 run(s) on psm2: 3099 3091 3098 3100 3003 3054 (only used in M5 STEP mode)
+FTBEO5G1.m5_center_angle 3547        # calibrated 2026-11-04: mean of 3 run(s) on psm1: 3583 3575 3483
+FTBEO5G1.m2_center_angle 1404        # calibrated 2026-11-04: mean of 3 run(s) on psm1: 1360 1425 1427 (opt-in M2 snap)

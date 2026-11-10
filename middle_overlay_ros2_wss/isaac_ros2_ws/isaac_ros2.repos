@@ -1,0 +1,16 @@
+# Isaac Lab / Newton ROS 2 middle overlay.
+# Pin FULL COMMIT HASHES only. Never branches.
+# Fetched/built into: $ARTS_LOCAL/middle_overlay_ros2_wss/isaac_ros2_ws/
+#
+# newton_ros has no release tags; pinned to main HEAD as of 2026-08-05.
+# Re-pin to a tag when one is published.
+repositories:
+  newton_ros:
+    type: git
+    url: https://github.com/vybhav-ibr/newton_ros.git
+    version: 94baf7bb19cc77946d00904227467d841b70c446
+  # Isaac Sim ROS workspaces (if additional Isaac-specific msgs/nodes are needed):
+  # IsaacSim-ros_workspaces:
+  #   type: git
+  #   url: https://github.com/NVIDIA-Omniverse/IsaacSim-ros_workspaces.git
+  #   version: TODO_PIN_TAG_OR_COMMIT

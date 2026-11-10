@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<!--
+  ARTS patient-cart description. Stage 1: placeholder pedestal + three prefixed
+  UR arms from the pinned ur_description. No vendor geometry is vendored here;
+  UR meshes arrive through the ur_ros2.repos pin, and the pedestal is a box we
+  authored.
+
+  This file is kinematics and visuals. ros2_control hardware stays in the
+  per-arm driver xacro (arts_driver/urdf/arts_ur_arm.urdf.xacro), because each arm
+  runs in its own controller_manager (decision 18) and cannot share one hardware
+  interface block. This file is for viewing the whole cart only (decision 13).
+
+  Role prefixes (decision 18; trailing underscore, UR's multi-robot convention):
+    psm_left_    UR5e
+    psm_right_   UR5e
+    ecm_         UR5 CB3
+-->
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="arts">
+
+  <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+  <xacro:include filename="$(find arts_description)/urdf/pedestal.xacro"/>
+
+  <link name="world"/>
+  <xacro:arts_pedestal/>
+
+  <xacro:macro name="arts_ur_arm" params="name tf_prefix ur_type parent">
+    <xacro:ur_robot
+      name="${name}"
+      tf_prefix="${tf_prefix}"
+      parent="${parent}"
+      joint_limits_parameters_file="$(find ur_description)/config/${ur_type}/joint_limits.yaml"
+      kinematics_parameters_file="$(find ur_description)/config/${ur_type}/default_kinematics.yaml"
+      physical_parameters_file="$(find ur_description)/config/${ur_type}/physical_parameters.yaml"
+      visual_parameters_file="$(find ur_description)/config/${ur_type}/visual_parameters.yaml"
+      >
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </xacro:ur_robot>
+  </xacro:macro>
+
+  <xacro:arts_ur_arm name="psm_left"  tf_prefix="psm_left_"  ur_type="ur5e" parent="psm_left_mount"/>
+  <xacro:arts_ur_arm name="psm_right" tf_prefix="psm_right_" ur_type="ur5e" parent="psm_right_mount"/>
+  <xacro:arts_ur_arm name="ecm"       tf_prefix="ecm_"       ur_type="ur5"  parent="ecm_mount"/>
+
+</robot>

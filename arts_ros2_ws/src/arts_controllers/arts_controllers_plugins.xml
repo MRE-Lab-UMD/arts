@@ -1,0 +1,13 @@
+<library path="arts_controllers">
+  <class name="arts_controllers/CartesianServoController"
+         type="arts_controllers::CartesianServoController"
+         base_class_type="controller_interface::ChainableControllerInterface">
+    <description>
+      Chainable Cartesian servo controller for a single 6-DoF arm. Takes a target pose,
+      applies a tool-space speed limit, solves damped-least-squares IK with pinocchio,
+      smooths the result in joint space with Ruckig, and writes joint position commands.
+      Carries a live tool-tip offset inside the kinematic model so the Jacobian is
+      computed to the real tip.
+    </description>
+  </class>
+</library>

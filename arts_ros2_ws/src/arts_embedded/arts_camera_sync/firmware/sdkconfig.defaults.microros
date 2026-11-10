@@ -1,0 +1,33 @@
+# Layered on top of sdkconfig.defaults for the MICROROS run mode (Stage 5e) only.
+#
+# The DevKitC has a single USB port, so the micro-ROS serial transport and the log console
+# would have to share UART0. They cannot: interleaved log text corrupts the XRCE-DDS framing
+# and the agent drops the session. The console is therefore disabled, which is also why the
+# SELFTEST mode exists — bring the hardware up there, where printf still works.
+
+CONFIG_ARTS_SYNC_MODE_MICROROS=y
+
+CONFIG_MICRO_ROS_ESP_XRCE_DDS_MIDDLEWARE=y
+CONFIG_MICRO_ROS_ESP_UART_TRANSPORT=y
+
+CONFIG_ESP_CONSOLE_NONE=y
+
+# THESE TWO LINES ARE WHAT MAKE THE TRANSPORT REACH THE USB PORT, and their default of -1 is a
+# silent failure. `esp32_serial_open()` calls
+# `uart_set_pin(port, CONFIG_MICROROS_UART_TXD, CONFIG_MICROROS_UART_RXD, ...)`, and -1 is
+# UART_PIN_NO_CHANGE — so upstream's default has the transport route nothing and rely on
+# somebody else having muxed UART0 onto GPIO 1/3. The console is what normally does that, and
+# the line above deliberately disables it, so the two settings interact: with the console off
+# and the pins left at -1 the client runs correctly and writes into a UART that reaches no pad.
+#
+# Observed 2026-08-19, and worth knowing because the symptom names nothing: the board boots
+# once, sends ZERO bytes, retries CREATE_SESSION ten times, fails rclc_support_init and
+# reboots — while the agent simply waits. Identical firmware with the console re-enabled (see
+# sdkconfig.defaults.microros_debug) transmitted XRCE frames immediately, which is the A/B that
+# located it.
+#
+# Setting them explicitly is better than re-enabling the console to get the mux as a side
+# effect: the transport then owns its own pins, and it keeps working if the console
+# configuration ever changes again.
+CONFIG_MICROROS_UART_TXD=1
+CONFIG_MICROROS_UART_RXD=3

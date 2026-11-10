@@ -1,0 +1,23 @@
+# Espressif ESP-IDF — pinned version.
+#
+# Belongs in oem_drivers/ by the taxonomy in AGENTS.md: the criterion is "a physical
+# component exists", not the license. ESP-IDF is Espressif's SDK for the ESP32 modules used
+# by arts_embedded (camera sync box, ESU tap, da Vinci tool driver) — same reasoning that
+# puts the open-source librealsense here rather than in open_source_software/.
+#
+# Unlike Spinnaker there is no account wall: this is a public git repo, so install.sh can
+# fetch it unattended and the pin is a tag rather than a mirrored archive.
+#
+# Why v5.5.5 and not v6.0.x: micro_ros_espidf_component (pinned in
+# arts_ros2_ws/src/arts_embedded/arts_camera_sync/firmware/components.repos) documents
+# testing against v5.2 through v6.0, and 5.5 is the mature end of that range. The firmware
+# uses the ESP-IDF v5.x MCPWM driver API (driver/mcpwm_prelude.h) — the legacy mcpwm API of
+# v4.x is a different, incompatible interface, so do NOT downgrade below v5.2.
+#
+# Cloned to: $ARTS_LOCAL/oem_drivers/esp-idf-<VERSION>/
+# Toolchains land in ~/.espressif (Espressif's own default; ~2 GB).
+VERSION=v5.5.5
+
+# Targets to install toolchains for. Every ESP32 in ARTS is a plain ESP32-WROOM (DevKitC),
+# so one target keeps the download small; add comma-separated targets if that changes.
+ESP_IDF_TARGETS=esp32
