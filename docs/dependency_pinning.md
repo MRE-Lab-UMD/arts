@@ -122,3 +122,37 @@ instead, are under Phase 1 in the status section below.
 version as the source pin. So the proxsuite configure-time assertion can no longer tell the apt
 copy from the source build; the prefix order in `arts_ws_build` (`deploy/modules/arts.sh`) is
 what selects the source build. The pinocchio assertion was seen firing against 4.1.0.
+
+**ROS apt packages by snapshot date (2026-11-26).** The rolling repository
+`packages.ros.org` offers only the newest version of each package, so `=version` cannot
+install an older one. `snapshots.ros.org` keeps every release of the Jazzy set under its
+date, signed with its own key (fingerprint `4B63 CF8F DE49 746E 98FA 01DD AD19 BAB3 CBF1
+25EA`, not the key of the rolling repository). The versions ARTS was built with (README)
+are those of the snapshot **2026-10-05**; the one before (2026-09-11) has
+`ur-client-library` 2.15.0 and the one after (2026-11-16) has 2.17.0, `ur-msgs` 2.7.0,
+`controller-manager` 4.50.0 and `generate-parameter-library` 0.7.7. That the production
+workstation was installed from this exact set is inferred from those versions; its
+`/var/log/dpkg.log` would confirm it.
+
+To switch a machine: install the snapshot key under `/usr/share/keyrings/`, remove the
+package `ros2-apt-source` (it owns the source file of the rolling repository), and add a
+source file:
+
+```
+Types: deb
+URIs: http://snapshots.ros.org/jazzy/2026-10-05/ubuntu
+Suites: noble
+Components: main
+Signed-By: /usr/share/keyrings/ros-snapshots-archive-keyring.gpg
+```
+
+Then `sudo apt update && sudo apt upgrade`; `apt-cache policy ros-jazzy-controller-manager`
+must show 4.48.1 as the candidate before the upgrade. A later `apt upgrade` cannot move the
+ROS packages while this is the only ROS source, and a bump is a change of the date.
+
+Tested 2026-11-26 on a second workstation that had the 2026-06-18 versions: the index
+verified against the key and the upgrade installed the 2026-10-05 versions. NOT yet tested:
+ARTS's own install and benchmarks on that machine, and a machine that already has newer
+packages (apt does not downgrade by itself). Ubuntu's own packages and the kernel are not
+covered; Ubuntu 24.04's apt has a snapshot service of its own for them, not set up here.
+The installer does not do any of this yet.

@@ -77,6 +77,13 @@ ROS's apt repository is rolling and ARTS cannot pin it; older copies of `ros-jaz
 build rather than at a prerequisite check (outside install, 2026-11-09; ARTS was built with 2.6.0,
 2.15.2 and 0.7.6).
 
+**To install the same ROS packages ARTS was built with**, use ROS's dated snapshot instead of
+the rolling repository: the versions above are exactly those of the snapshot
+`http://snapshots.ros.org/jazzy/2026-10-05/ubuntu` (with `ros-jazzy-controller-manager` 4.48.1
+and `ros-jazzy-ur-robot-driver` 3.9.0). How to switch a machine to it, and what has and has
+not been tested: [`docs/dependency_pinning.md`](docs/dependency_pinning.md), "ROS apt packages
+by snapshot date".
+
 The repository holds only recipes, manifests and first-party source. Everything heavy
 (> 100 GB) is built into `~/arts_local/`. Vendor-account SDKs, such as FLIR Spinnaker, are
 downloaded by hand: the installer says what to download and where to put it.
