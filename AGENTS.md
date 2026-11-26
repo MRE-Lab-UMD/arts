@@ -25,12 +25,15 @@ it in place. Reference code is ported into ARTS, not copied.
 
 ## Hard rules (break none of these)
 
-1. **Double-anonymous.** This repo becomes an anonymized code capsule for ISMR review. No
-   identifying reference to the prior system's name, its authors, collaborators, their
-   institutions or usernames, the regional arm distributor, or this machine's username or
-   hostname may appear in ANY tracked file. Say "the prior system", "the v1.4 reference",
-   "collaborator A". Run `deploy/ci/check_anonymity.sh` before every commit. Credit belongs
-   in the paper, never in the tree.
+1. **No private identity in the tree; published authorship is allowed.** Until 2026-11-24
+   this repo was held double-anonymous for ISMR review. Both papers are now public on arXiv
+   with their author lists (2611.15135, 2611.21771), so the names of the papers' authors may
+   appear in a tracked file; the README's Citation section is the first place. Still banned
+   in ANY tracked file: email addresses, usernames, this machine's username or hostname,
+   private repository URLs, and the regional arm distributor. The rest of the tree is NOT
+   yet de-anonymized (`maintainer` fields, institutions, the prior system's name): that is
+   a pass of its own, so until it is done keep saying "the prior system" and "the v1.4
+   reference". Run `deploy/ci/check_anonymity.sh` before every commit.
 2. **Source only the immediate underlay** (see "Sourcing rules" below). A correct chain shows
    `/opt/ros/jazzy` in `AMENT_PREFIX_PATH` exactly once, at the end.
 3. **Pin everything** — never a branch (see "Dependency pinning").

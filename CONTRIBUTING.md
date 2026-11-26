@@ -23,15 +23,18 @@ code, plus the two rules that are easiest to break by accident.
 
 ### Anonymity
 
-This repo becomes a double-anonymous code capsule for peer review, so **no tracked file may
-contain a personal name, email address, username, hostname, institution, collaborator or
-private repository URL.** That includes places you would not think of: `package.xml`
+Until 2026-11-24 this repo was held double-anonymous for peer review. Both papers are now
+public on arXiv with their author lists, so **the names of the papers' authors may appear in
+a tracked file** (the README's Citation section). The rest of the tree has not been
+de-anonymized yet; that is a pass of its own. Until then, **no tracked file may contain an
+email address, username, hostname, institution or private repository URL.** That includes
+places you would not think of: `package.xml`
 maintainer fields, `setup.py`, generated benchmark filenames, and documents received from
 elsewhere (a structural review was itself removed from `docs/` in Aug 2026 for exactly this).
 
 Published prior art is a deliberate exception and is *encouraged*: cite MOPS, dVRK, the open
-laparoscopic platform, and any other published system by name. The rule bans identifying **the
-authors of this work**, not the literature. The prior in-house system is referred to as "the
+laparoscopic platform, and any other published system by name. The rule is about private
+identity, not the literature, and since 2026-11-24 not the papers' author lists either. The prior in-house system is referred to as "the
 prior system" or "the v1.4 reference", never by its acronym.
 
 Machines are named by class, never by hostname — `devlaptop-6c12t`, `ws-16c32t`. Benchmark

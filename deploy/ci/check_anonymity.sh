@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# Fail if a tracked file contains something that identifies the authors, their machines, or
-# their private infrastructure.
+# Fail if a tracked file contains private identity: the authors' usernames and email
+# addresses, their machines, or their private infrastructure.
+#
+# AUTHOR NAMES ARE NO LONGER A LEAK (2026-11-24). Both papers are public on arXiv with their
+# author lists, and the README's Citation section names them, so the name patterns were
+# removed. The username, email, account, hostname and prior-system patterns stay until the
+# tree is de-anonymized in a pass of its own (AGENTS.md, hard rule 1).
 #
 # WHY THIS EXISTS AS A SCRIPT RATHER THAN A RULE IN A DOC. This repo becomes a
 # double-anonymous review capsule, and the leaks found in Aug 2026 were not careless — they
@@ -34,9 +39,9 @@ LIST=0
 # ADD A PATTERN WHENEVER A NEW CLASS OF LEAK IS FOUND, and add it here rather than fixing the
 # file quietly — the file is one instance, the pattern is the class.
 PATTERNS=$(cat <<'EOF'
-maintainer name|jiawei|jge9
+maintainer username|jge9
 institution email|@jh\.edu|@jhu\.edu
-collaborator name|mcdonough|dmcdono|\bdoug\b
+collaborator username|dmcdono
 collaborator package name|sarrts
 personal account|github\.com/[A-Za-z0-9_-]+/(arts|esu_tap)
 machine hostname|alienware|sonamyeshe|imerse

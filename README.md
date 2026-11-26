@@ -327,3 +327,32 @@ The regression tests run on mock through `arts_controllers/test/run_servo_smoke_
 Every dependency is pinned (tag or commit, `=version`, `==version`); see
 [`docs/dependency_pinning.md`](docs/dependency_pinning.md). Layout details:
 [`docs/repo_layout.md`](docs/repo_layout.md). License: Apache-2.0.
+
+---
+
+## Citation
+
+If ARTS is useful in your research, please cite the system paper. If you use the instrument
+module or the energy interposer, please also cite the instrument-module paper.
+
+```bibtex
+@misc{ge2026arts,
+  title         = {{ARTS}: An Open-Source, Reproducible Three-Arm Platform for Autonomy Research in Minimally Invasive Surgery},
+  author        = {Ge, Jiawei and Kim, Chunwoo and Goldenberg, Antony and McDonough, Douglas and Liao, Justin and Ning, Bo and Ladstaetter, Sylvia and Van Anderlecht, Katya and Ding, Hao and Connolly, Laura and Kilmer, Ethan and Fan, Francis and Hu, Shouyue and Salvador, Tyler and Burkhart, Brendan and Henrich, Pit and Cha, Richard and Porras, Tito and Unberath, Mathias and Cleary, Kevin and Krieger, Axel},
+  year          = {2026},
+  eprint        = {2611.15135},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO},
+  url           = {https://arxiv.org/abs/2611.15135}
+}
+
+@misc{mcdonough2026instrument,
+  title         = {An Open-Source da {V}inci {X/Xi} Instrument Module for Laparoscopic Surgery Research},
+  author        = {McDonough, Douglas and Liao, Justin and Ge, Jiawei and Goldenberg, Antony and Zhang, Yvonne and Eagleson, Mackenzie A. and Prakash, Ravi and Krieger, Axel and Kim, Chunwoo},
+  year          = {2026},
+  eprint        = {2611.21771},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO},
+  url           = {https://arxiv.org/abs/2611.21771}
+}
+```
